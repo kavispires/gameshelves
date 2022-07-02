@@ -1,5 +1,6 @@
 {
   "name": "gameshelves",
+  "homepage": "http://www.kavispires.com/gameshelves/",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -22,6 +23,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "deploy": "gh-pages -d build",
     "format": "prettier --write .",
     "eject": "react-scripts eject"
   },
@@ -68,6 +70,7 @@
     ]
   },
   "devDependencies": {
+    "gh-pages": "^4.0.0",
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1"
