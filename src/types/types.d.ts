@@ -10,6 +10,8 @@ type GenericFunction = (...args: any) => void;
 type BooleanFunction = (...args: any) => boolean;
 
 type GameId = string;
+type ShelfId = string;
+type ShelfEntryId = GameId;
 type GameStatus = 'OWN' | 'PREORDERED';
 type LanguageDependence = 'Unknown' | 'Required' | 'Extensive' | 'Moderate' | 'Some' | 'None';
 type GameType = 'base' | 'expansion' | 'promo' | 'upgrade' | 'accessory' | 'big-box' | 'unknown';
@@ -27,7 +29,7 @@ type BoxSize =
 type BoxDimensions = {
   width: number;
   height: number;
-  length: number;
+  depth: number;
 };
 
 interface GameEntry {
@@ -118,13 +120,18 @@ interface GameEntry {
    * Type of entry
    */
   type: GameType;
+
+  /**
+   *
+   */
+  shelfId: ShelfId;
 }
 
 interface ShelfEntry {
   /**
    * BGG Id
    */
-  id: GameId;
+  id: ShelfEntryId;
   /**
    * Name of the board game item (duplicated information)
    */
@@ -140,7 +147,7 @@ interface ShelfEntry {
   /**
    * Shelf ID indicating where the game is located or 'unshelved'
    */
-  shelfId: string;
+  shelfId: ShelfId;
   /**
    * The game box size (if any)
    */
@@ -148,21 +155,12 @@ interface ShelfEntry {
   /**
    * Dimensions in mm when the game has a box
    */
-  dimensions?: {
-    width: number;
-    height: number;
-    length: number;
-  };
+  dimensions?: BoxDimensions;
 
   /**
    * If the entry contains other items in its box, including itself (?)
    */
-  contains?: GameId[];
-
-  /**
-   * Indicates if game has been shelved
-   */
-  shelved: boolean;
+  contains: ContainedGameEntry[];
 
   /**
    * Timestamp when the entry was first added in milliseconds
@@ -178,4 +176,38 @@ interface ShelfEntry {
    * Indicates if dimensions, type, and location (contains) are set
    */
   complete: boolean;
+
+  /**
+   * To link expansions and other items that are boxed separately
+   */
+  relatedEntries?: GameId[];
+}
+
+interface Classification {
+  id: GameId;
+  type: GameType;
+  box: BoxSize;
+  shelfId: ShelfId;
+  width: number;
+  height: number;
+  depth: number;
+}
+
+interface ContainedGameEntry {
+  id: GameId;
+  name: string;
+  thumbnail: string;
+  type: GameType;
+}
+
+interface BoxPresets {
+  width: number;
+  height: number;
+  depth: number;
+  box: BoxSize;
+}
+
+interface SearchOption {
+  label: string;
+  value: string;
 }

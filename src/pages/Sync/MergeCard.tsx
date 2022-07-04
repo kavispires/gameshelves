@@ -1,7 +1,11 @@
-import { Button, Card, Image, Table, Typography } from 'antd';
-import { useEffect } from 'react';
+import { Alert, Button, Card, Col, Image, Row, Spin, Statistic, Table, Typography } from 'antd';
+import { useQueryShelvedGames } from 'hooks';
+import { orderBy } from 'lodash';
+import { useCallback, useEffect, useMemo } from 'react';
+
 import {
   checkKeyValues,
+  getShelvedGamesIdDictionary,
   mergeCollections,
   prepareRawGameShelfEntry,
   transformCSV,
@@ -10,26 +14,35 @@ import {
 
 const { Paragraph } = Typography;
 
-interface MergeCardProps {
+type MergeCardProps = {
   csvContent: UnknownDictionary[];
   xmlContent: UnknownDictionary[];
   goToNextStep: GenericFunction;
-  data: MergedCollectionEntry[];
-  setData: GenericFunction;
-}
+  ingestedData: MergedCollectionEntry[];
+  setIngestedData: GenericFunction;
+  setDataToBeAdded: GenericFunction;
+};
 
-export function MergeCard({ csvContent, xmlContent, data, setData, goToNextStep }: MergeCardProps) {
+export function MergeCard({
+  csvContent,
+  xmlContent,
+  ingestedData,
+  setIngestedData,
+  goToNextStep,
+  setDataToBeAdded,
+}: MergeCardProps) {
   useEffect(() => {
     const csv = transformCSV(csvContent);
     const xml = transformXML(xmlContent);
     const merged = mergeCollections(csv, xml);
     const gameEntries = prepareRawGameShelfEntry(merged);
-    setData(gameEntries);
-  }, []);
 
-  console.log({ data });
+    setIngestedData(orderBy(gameEntries, 'name'));
+  }, [csvContent, xmlContent, setIngestedData]);
 
-  checkKeyValues(data);
+  const { isLoading, isSuccess, response: shelvedGames, isError, error } = useQueryShelvedGames();
+
+  checkKeyValues(ingestedData);
 
   const columns = [
     {
@@ -55,17 +68,61 @@ export function MergeCard({ csvContent, xmlContent, data, setData, goToNextStep 
       key: 'rating',
       sorter: (a: any, b: any) => a.rating - b.rating,
     },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+    },
   ];
+
+  const shelvedGamesIdDictionary = useMemo(
+    () => (shelvedGames ? getShelvedGamesIdDictionary(shelvedGames) : {}),
+    [shelvedGames]
+  );
+  const newEntries = useMemo(
+    () => ingestedData.filter((entry) => shelvedGamesIdDictionary![entry.id] === undefined),
+    [ingestedData, shelvedGamesIdDictionary]
+  );
+
+  const handleSyncNew = useCallback(() => {
+    setDataToBeAdded(newEntries);
+    goToNextStep();
+  }, [goToNextStep, newEntries, setDataToBeAdded]);
+
+  const handleSyncAll = useCallback(() => {
+    setDataToBeAdded(ingestedData);
+    goToNextStep();
+  }, [goToNextStep, ingestedData, setDataToBeAdded]);
 
   return (
     <Card title="Merge Collections" className="full-width margin-1">
       <Paragraph>Parse, merge, and transform collections into a GameShelf entry</Paragraph>
 
-      <Table dataSource={data} columns={columns} />
+      {isLoading && <Spin />}
 
-      <Button type="primary" disabled={csvContent.length === 0} onClick={goToNextStep}>
-        Continue
-      </Button>
+      {isError && (
+        <Alert type="error" message="Failed to load shelved games" description={JSON.stringify(error)} />
+      )}
+
+      {isSuccess && (
+        <Row gutter={16} className="margin-1">
+          <Col span={12}>
+            <Statistic title="New Entries" value={Object.keys(newEntries).length ?? 0} />
+            <Button type="primary" onClick={handleSyncNew}>
+              Add New Only
+            </Button>
+          </Col>
+
+          <Col span={12}>
+            <Statistic title="Total Imported Entries" value={ingestedData?.length ?? 0} />
+            <Button type="primary" danger onClick={handleSyncAll}>
+              Resync All
+            </Button>
+          </Col>
+        </Row>
+      )}
+
+      <Table dataSource={newEntries} columns={columns} />
     </Card>
   );
 }

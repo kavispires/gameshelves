@@ -104,7 +104,8 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
       image: entry.image,
       thumbnail: entry.thumbnail,
       languageDependence: getLanguageDependency(entry.languageDependence),
-      gameType: 'unknown',
+      type: 'unknown',
+      shelfId: 'unshelved',
     };
     // Optional Data
     if (entry.rank) {
@@ -128,7 +129,7 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
   return response;
 }
 
-function getStatus(status: string) {
+function getStatus(status: string): GameStatus {
   return status === 'PREORDERED' ? 'PREORDERED' : 'OWN';
 }
 
@@ -136,7 +137,7 @@ function getCountNumbers(count: string): number[] {
   return count.split(',').map((v) => Number(v));
 }
 
-function getLanguageDependency(languageDependence: string): string {
+function getLanguageDependency(languageDependence: string): LanguageDependence {
   switch (languageDependence) {
     case 'No necessary in-game text':
       return 'None';
@@ -151,4 +152,78 @@ function getLanguageDependency(languageDependence: string): string {
     default:
       return 'Unknown';
   }
+}
+
+export function prepareGamesToBeSaved(games: GameEntry[], classifications: Record<GameId, Classification>) {
+  const newGames = games.reduce((acc: GameEntry[], game) => {
+    const classification = classifications?.[game.id];
+    if (classification?.type) {
+      acc.push({
+        ...game,
+        type: classifications[game.id].type,
+      });
+    }
+
+    return acc;
+  }, []);
+
+  const shelvedGames = games.reduce((acc: Record<GameId, ShelfEntry>, game) => {
+    const classification = classifications?.[game.id];
+
+    if (!classification) {
+      return acc;
+    }
+
+    const entry: ShelfEntry = {
+      id: game.id,
+      name: game.name,
+      searchQuery: `${game.name} ${game.originalName}`,
+      thumbnail: game.thumbnail,
+      shelfId: classification.shelfId,
+      box: classification.box,
+      dimensions:
+        classification.width > 0
+          ? {
+              width: classification.width,
+              height: classification.height,
+              depth: classification.depth,
+            }
+          : undefined,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      contains: [
+        {
+          id: game.id,
+          name: game.name,
+          thumbnail: game.thumbnail,
+          type: classification.type,
+        },
+      ],
+      complete: false,
+    };
+
+    // remove undefined fields
+    if (!entry.dimensions) {
+      delete entry.dimensions;
+    }
+
+    acc[game.id] = entry;
+
+    return acc;
+  }, {});
+
+  return {
+    games: newGames,
+    shelvedGames,
+  };
+}
+
+export function getShelvedGamesIdDictionary(shelvedGames: Record<GameId, ShelfEntry>): StringDictionary {
+  return Object.values(shelvedGames).reduce((acc: StringDictionary, entry) => {
+    entry.contains.forEach((containedEntry) => {
+      acc[containedEntry?.id || String(containedEntry)] = entry.shelfId;
+    });
+
+    return acc;
+  }, {});
 }

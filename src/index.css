@@ -13,7 +13,14 @@ code {
 }
 
 .app {
-  padding: 1rem;
+  /* padding: 1rem; */
+  /* display: grid; */
+  height: 100vh;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
 }
 
 .content {
