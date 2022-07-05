@@ -110,17 +110,10 @@ function GameClassifier({ game, classifications, setClassifications }: GameClass
   };
 
   return (
-    <Descriptions
-      title={`${game.name} (${game.id})`}
-      bordered
-      size="small"
-      layout="vertical"
-      column={{ xxl: 2, xl: 3, lg: 3, md: 3, sm: 2, xs: 1 }}
-    >
-      <Descriptions.Item label="Image">
-        <Image src={game.image} width={50} height={50} preview={false} />
+    <Descriptions title={`${game.name} (${game.id})`} bordered size="small" layout="vertical" column={1}>
+      <Descriptions.Item label="Name">
+        <Image src={game.image} width={50} height={50} preview={false} /> <span>{game.name}</span>
       </Descriptions.Item>
-      <Descriptions.Item label="Name">{game.name}</Descriptions.Item>
       <Descriptions.Item label="Type">
         <Segmented
           options={GAME_TYPES}
