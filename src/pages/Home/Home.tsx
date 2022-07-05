@@ -1,9 +1,12 @@
 import { Layout } from 'antd';
+import { SearchBar } from 'components/SearchBar/SearchBar';
 
 export function Home() {
   return (
     <>
-      <Layout.Content>Home content</Layout.Content>
+      <Layout.Content className="content">
+        <SearchBar />
+      </Layout.Content>
     </>
   );
 }

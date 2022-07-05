@@ -38,3 +38,25 @@ code {
 .padding-1 {
   padding: 1rem;
 }
+
+.header {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+}
+
+.header-logo {
+  display: flex;
+}
+
+.header-logo-title {
+  color: white;
+  margin-left: 1rem;
+}
+
+.header-menu {
+  justify-self: end;
+  width: 100%;
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: flex-end;
+}
