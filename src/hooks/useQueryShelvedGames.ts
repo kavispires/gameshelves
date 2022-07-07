@@ -1,6 +1,7 @@
 import { useFirestoreDocument } from '@react-query-firebase/firestore';
 import { doc } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { orderBy } from 'lodash';
+import { useCallback, useMemo } from 'react';
 import { firestore } from 'services/firebase';
 
 /**
@@ -16,19 +17,60 @@ export function useQueryShelvedGames() {
 
   const response = useMemo(() => (isSuccess ? data?.data() ?? {} : {}), [isSuccess, data]);
 
-  const searchOptions = useMemo(() => {
-    const res: SearchOption[] = [];
-    Object.values(response).forEach((entry) => {
+  const { searchOptions, perShelf, boxedGames, orphanedGames, unclassifiedGames } = useMemo(() => {
+    const searchOptionsResult: SearchOption[] = [];
+    const perShelfResult: Record<ShelfId, ShelfEntry[]> = {};
+    const boxedGamesResult: Record<GameId, ShelfEntry> = {};
+    const orphanedGamesResult: Record<GameId, ShelfEntry> = {};
+    const unclassifiedGamesResult: Record<GameId, ShelfEntry> = {};
+
+    orderBy(Object.values(response), ['name']).forEach((entry) => {
+      // Handle search options
       entry.contains.forEach((containedGame) => {
-        res.push({
+        searchOptionsResult.push({
           label: `${containedGame.name} [${containedGame.type}]`,
           value: entry.id,
         });
       });
+
+      // Handle per shelf
+      if (perShelfResult[entry.shelfId] === undefined) {
+        perShelfResult[entry.shelfId] = [];
+      }
+      perShelfResult[entry.shelfId].push(entry);
+
+      // Handle boxed, orphaned, and unclassified games
+      switch (entry.box) {
+        case 'none':
+          orphanedGamesResult[entry.id] = entry;
+          break;
+        case 'unknown':
+          unclassifiedGamesResult[entry.id] = entry;
+          break;
+        default:
+          boxedGamesResult[entry.id] = entry;
+      }
     });
 
-    return res;
+    return {
+      searchOptions: searchOptionsResult,
+      perShelf: perShelfResult,
+      boxedGames: boxedGamesResult,
+      orphanedGames: orphanedGamesResult,
+      unclassifiedGames: unclassifiedGamesResult,
+    };
   }, [response]);
+
+  const getShelvedGame = useCallback((id: ShelfEntryId) => response?.[id] ?? {}, [response]);
+
+  const isOrphan = useCallback((id: ShelfEntryId) => Boolean(orphanedGames?.[id]), [orphanedGames]);
+
+  const isBoxed = useCallback((id: ShelfEntryId) => Boolean(boxedGames?.[id]), [boxedGames]);
+
+  const isShelved = useCallback(
+    (id: ShelfEntryId) => Boolean(response?.[id]?.shelfId !== 'unshelved'),
+    [response]
+  );
 
   return {
     ...rest,
@@ -36,5 +78,13 @@ export function useQueryShelvedGames() {
     data,
     response,
     searchOptions,
+    perShelf,
+    boxedGames,
+    orphanedGames,
+    unclassifiedGames,
+    getShelvedGame,
+    isOrphan,
+    isBoxed,
+    isShelved,
   };
 }
