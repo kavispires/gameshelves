@@ -22,3 +22,11 @@
 .padding-1 {
   padding: 1rem;
 }
+
+.fully-flex-center {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

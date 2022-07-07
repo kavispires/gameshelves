@@ -36,6 +36,7 @@ code {
 
 @import '../components/Header/Header.scss';
 @import '../components/Header/Menu.scss';
+@import '../components/CardItem.scss';
 
 // TO-DO: Refactor
 
@@ -45,14 +46,6 @@ svg path {
 
 .shelf-hover path:hover {
   cursor: pointer;
-}
-
-.loading-page {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .game-card {
@@ -75,12 +68,6 @@ svg path {
 
 .game-card__content {
   grid-area: content;
-}
-
-.label {
-  font-family: monospace;
-  color: var(--gray);
-  display: block;
 }
 
 .game-card-data-details {
