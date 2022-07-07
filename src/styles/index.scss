@@ -12,6 +12,12 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
 :root {
   --primary-color: #264653;
   --black: #14242a;
@@ -37,6 +43,8 @@ code {
 @import '../components/Header/Header.scss';
 @import '../components/Header/Menu.scss';
 @import '../components/CardItem.scss';
+@import '../pages/Shelves/GameCard.scss';
+@import '../components/ContainedGame.scss';
 
 // TO-DO: Refactor
 
@@ -46,39 +54,4 @@ svg path {
 
 .shelf-hover path:hover {
   cursor: pointer;
-}
-
-.game-card {
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: 130px auto;
-  grid-template-rows: auto;
-  grid-template-areas:
-    'image details'
-    'content content';
-}
-
-.game-card__image {
-  grid-area: image;
-}
-
-.game-card__details {
-  grid-area: details;
-}
-
-.game-card__content {
-  grid-area: content;
-}
-
-.game-card-data-details {
-  display: flex;
-}
-.game-card-data-details > * {
-  margin-right: 1rem;
-}
-
-.contained-game {
-  margin: 1rem;
-  display: grid;
-  grid-auto-columns: auto;
 }

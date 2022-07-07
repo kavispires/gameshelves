@@ -8,5 +8,7 @@ interface GameCoverProps extends ImageProps {
 }
 
 export function GameCover({ src, name, width, ...rest }: GameCoverProps) {
-  return <Image src={src} width={80} fallback={URLS.BGG_NO_IMAGE} title={`Cover for: ${name}`} {...rest} />;
+  return (
+    <Image src={src} width={width} fallback={URLS.BGG_NO_IMAGE} title={`Cover for: ${name}`} {...rest} />
+  );
 }

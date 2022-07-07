@@ -1,0 +1,34 @@
+.contained-game {
+  background-color: var(--white);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  max-width: 120px;
+  margin: 0 0.5rem 0.5rem 0;
+
+  & .card-item-label {
+    text-align: center;
+  }
+
+  &__name {
+    max-width: 100px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__remove {
+    margin-top: 0.5rem;
+  }
+
+  &__add-game {
+    justify-content: center;
+  }
+}
+
+.contained-game-list {
+  display: flex;
+  flex-wrap: wrap;
+}

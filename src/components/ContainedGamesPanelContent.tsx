@@ -1,33 +1,32 @@
-import { Button } from 'antd';
-import { GameCover } from './GameCover';
-import { GameTypeSelect } from './GameTypeSelect';
+import { AddContainedGameModal } from './AddContainedGameModal';
+import { ContainedGame } from './ContainedGame';
 
 type ContainedGamesPanelContentProps = {
   games: ContainedGameEntry[];
+  containerName: string;
+  onAddContainedGame: GenericFunction;
+  removeContainedGame: GenericFunction;
 };
 
-export function ContainedGamesPanelContent({ games }: ContainedGamesPanelContentProps) {
+export function ContainedGamesPanelContent({
+  games,
+  containerName,
+  onAddContainedGame,
+  removeContainedGame,
+}: ContainedGamesPanelContentProps) {
   return (
-    <>
+    <ul className="contained-game-list">
       {games.map((game, index) => (
-        <div key={`contained-${game.id}`} className="contained-game">
-          <GameCover src={game.thumbnail} name={game.name} width={80} className="game-card__image" />
-          <span className="a">{game.name}</span>
-          <span className="a">
-            <GameTypeSelect value={game.type} />
-          </span>
-          {index !== 0 && (
-            <span>
-              <Button size="small" danger>
-                Remove
-              </Button>
-            </span>
-          )}
-        </div>
+        <ContainedGame
+          key={`contained-${game.id}`}
+          game={game}
+          index={index}
+          removeContainedGame={removeContainedGame}
+        />
       ))}
-      <div className="contained-game">
-        <Button>Add game</Button>
-      </div>
-    </>
+      <li className="contained-game contained-game__add-game">
+        <AddContainedGameModal name={containerName} onAddContainedGame={onAddContainedGame} />
+      </li>
+    </ul>
   );
 }
