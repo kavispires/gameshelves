@@ -14,7 +14,15 @@ type ShelfId = string;
 type ShelfEntryId = GameId;
 type GameStatus = 'OWN' | 'PREORDERED';
 type LanguageDependence = 'Unknown' | 'Required' | 'Extensive' | 'Moderate' | 'Some' | 'None';
-type GameType = 'base' | 'expansion' | 'promo' | 'upgrade' | 'accessory' | 'big-box' | 'unknown';
+type GameType =
+  | 'base'
+  | 'expansion'
+  | 'mini-expansion'
+  | 'promo'
+  | 'upgrade'
+  | 'accessory'
+  | 'big-box'
+  | 'unknown';
 type BoxSize =
   | 'card'
   | 'x-small'
@@ -180,7 +188,7 @@ interface ShelfEntry {
   /**
    * To link expansions and other items that are boxed separately
    */
-  relatedEntries?: GameId[];
+  relatedEntries?: ShelfEntryId[];
 }
 
 interface Classification {

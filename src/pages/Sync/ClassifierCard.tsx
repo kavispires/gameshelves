@@ -8,10 +8,12 @@ import {
   Popconfirm,
   Segmented,
   Space,
+  Tag,
   Typography,
 } from 'antd';
 import { useStep } from 'hooks';
-import { BOX_SIZES, DEFAULT_BOX_DIMENSIONS, GAME_TYPES } from './constants';
+import { BOX_SIZES, GAME_TYPES } from 'utils/constants';
+import { DEFAULT_BOX_DIMENSIONS } from './constants';
 
 const { Paragraph } = Typography;
 
@@ -112,7 +114,8 @@ function GameClassifier({ game, classifications, setClassifications }: GameClass
   return (
     <Descriptions title={`${game.name} (${game.id})`} bordered size="small" layout="vertical" column={1}>
       <Descriptions.Item label="Name">
-        <Image src={game.image} width={50} height={50} preview={false} /> <span>{game.name}</span>
+        <Image src={game.image} width={50} height={50} preview={false} /> <span>{game.name}</span>{' '}
+        {game.status === 'PREORDERED' && <Tag color="yellow">Preorder</Tag>}
       </Descriptions.Item>
       <Descriptions.Item label="Type">
         <Segmented

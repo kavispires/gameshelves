@@ -101,8 +101,8 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
       recommendedPlayerCount: getCountNumbers(entry.recommendedPlayerCount),
       minPlaytime: entry.minPlaytime,
       maxPlaytime: entry.maxPlaytime,
-      image: entry.image,
-      thumbnail: entry.thumbnail,
+      image: entry.image ?? '???',
+      thumbnail: entry.thumbnail ?? '???',
       languageDependence: getLanguageDependency(entry.languageDependence),
       type: 'unknown',
       shelfId: 'unshelved',
@@ -178,7 +178,7 @@ export function prepareGamesToBeSaved(games: GameEntry[], classifications: Recor
       id: game.id,
       name: game.name,
       searchQuery: `${game.name} ${game.originalName}`,
-      thumbnail: game.thumbnail,
+      thumbnail: game.thumbnail ?? '???',
       shelfId: classification.shelfId,
       box: classification.box,
       dimensions:
@@ -195,7 +195,7 @@ export function prepareGamesToBeSaved(games: GameEntry[], classifications: Recor
         {
           id: game.id,
           name: game.name,
-          thumbnail: game.thumbnail,
+          thumbnail: game.thumbnail ?? '???',
           type: classification.type,
         },
       ],

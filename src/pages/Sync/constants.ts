@@ -20,21 +20,6 @@ export const csvKeyPairs: StringDictionary = {
   yearpublished: 'year',
 };
 
-export const GAME_TYPES = ['base', 'expansion', 'promo', 'upgrade', 'accessory', 'big-box', 'unknown'];
-
-export const BOX_SIZES = [
-  'card',
-  'x-small',
-  'small',
-  'medium',
-  'regular',
-  'large',
-  'x-large',
-  'big-box',
-  'none',
-  'unknown',
-];
-
 export const DEFAULT_BOX_DIMENSIONS: Record<string, BoxPresets> = {
   Unknown: {
     width: 0,
