@@ -24,7 +24,7 @@ export function GameCard({ game, children, isMutated = false, save }: GameCardPr
       className="game-card"
     >
       <div className="game-card__content">
-        <GameCover src={game.thumbnail} name={game.name} width={120} className="game-card__image" />
+        <GameCover id={game.id} name={game.name} width={120} className="game-card__image" />
 
         <div className="game-card__details">{children[0]}</div>
         <div className="game-card__data">{children[1]}</div>

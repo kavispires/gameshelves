@@ -6,7 +6,6 @@ import clsx from 'clsx';
 export function Menu() {
   const location = useLocation();
   const currentRoute = location.pathname;
-  console.log(currentRoute);
 
   return (
     <nav className="header-menu">

@@ -145,14 +145,6 @@ interface ShelfEntry {
    */
   name: string;
   /**
-   * string with name and all contained names
-   */
-  searchQuery: string;
-  /**
-   * Game thumbnail image url (duplicated information)
-   */
-  thumbnail: string;
-  /**
    * Shelf ID indicating where the game is located or 'unshelved'
    */
   shelfId: ShelfId;
@@ -173,11 +165,6 @@ interface ShelfEntry {
   /**
    * Timestamp when the entry was first added in milliseconds
    */
-  createdAt: number;
-
-  /**
-   * Timestamp when the entry was first added in milliseconds
-   */
   updatedAt: number;
 
   /**
@@ -189,6 +176,11 @@ interface ShelfEntry {
    * To link expansions and other items that are boxed separately
    */
   relatedEntries?: ShelfEntryId[];
+}
+
+interface GameImages {
+  image?: string;
+  thumbnail?: string;
 }
 
 interface Classification {
@@ -204,7 +196,6 @@ interface Classification {
 interface ContainedGameEntry {
   id: GameId;
   name: string;
-  thumbnail: string;
   type: GameType;
 }
 

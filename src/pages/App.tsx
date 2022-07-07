@@ -1,4 +1,5 @@
 import { ConfigProvider, Layout } from 'antd';
+import { DataQueryWrapper } from 'components';
 import { Header } from 'components/Header/Header';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter, Route, Routes } from 'react-router-dom';
@@ -35,15 +36,17 @@ export function App() {
       <Layout className="app">
         <HashRouter>
           <Header />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/shelves" element={<Shelves />} />
-            <Route path="/shelves/:id" element={<Shelf />} />
-            <Route path="/sync" element={<Sync />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <DataQueryWrapper>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/shelves" element={<Shelves />} />
+              <Route path="/shelves/:id" element={<Shelf />} />
+              <Route path="/sync" element={<Sync />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </DataQueryWrapper>
         </HashRouter>
       </Layout>
     </QueryClientProvider>

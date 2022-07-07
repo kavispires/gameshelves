@@ -12,7 +12,7 @@ type ContainedGameProps = {
 export function ContainedGame({ game, index, removeContainedGame }: ContainedGameProps) {
   return (
     <li key={`contained-${game.id}`} className="contained-game">
-      <GameCover src={game.thumbnail} name={game.name} width={80} height={80} className="game-card__image" />
+      <GameCover id={game.id} name={game.name} width={80} height={80} className="game-card__image" />
       <span className="contained-game__name">{game.name}</span>
       <span className="contained-game__type">
         <GameTypeSelect value={game.type} />

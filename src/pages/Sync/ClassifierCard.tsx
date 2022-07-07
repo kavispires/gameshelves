@@ -115,7 +115,7 @@ function GameClassifier({ game, classifications, setClassifications }: GameClass
     <Descriptions title={`${game.name} (${game.id})`} bordered size="small" layout="vertical" column={1}>
       <Descriptions.Item label="Name">
         <GameCover
-          src={game.image}
+          id={game.id}
           name={game.name}
           width={50}
           height={50}

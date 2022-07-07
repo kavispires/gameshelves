@@ -3,6 +3,8 @@ export * from './ShelvesSVG/ShelvesSVG';
 export * from './BoxSizeSelect';
 export * from './CardItem';
 export * from './ContainedGamesPanelContent';
+export * from './Content';
+export * from './DataQueryWrapper';
 export * from './GameCover';
 export * from './GameTypeSelect';
 export * from './GameTypeTag';

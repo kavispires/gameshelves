@@ -177,8 +177,6 @@ export function prepareGamesToBeSaved(games: GameEntry[], classifications: Recor
     const entry: ShelfEntry = {
       id: game.id,
       name: game.name,
-      searchQuery: `${game.name} ${game.originalName}`,
-      thumbnail: game.thumbnail ?? '???',
       shelfId: classification.shelfId,
       box: classification.box,
       dimensions:
@@ -189,13 +187,11 @@ export function prepareGamesToBeSaved(games: GameEntry[], classifications: Recor
               depth: classification.depth,
             }
           : undefined,
-      createdAt: Date.now(),
       updatedAt: Date.now(),
       contains: [
         {
           id: game.id,
           name: game.name,
-          thumbnail: game.thumbnail ?? '???',
           type: classification.type,
         },
       ],
