@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/gameshelves/static/css/main.a2b09f13.css",
-    "main.js": "/gameshelves/static/js/main.72d1eecb.js",
+    "main.css": "/gameshelves/static/css/main.b08cf73f.css",
+    "main.js": "/gameshelves/static/js/main.ad0a3a61.js",
     "static/js/787.bf72e23d.chunk.js": "/gameshelves/static/js/787.bf72e23d.chunk.js",
     "static/media/logo.svg": "/gameshelves/static/media/logo.85f9103a2d558fa00870377af6b23028.svg",
     "index.html": "/gameshelves/index.html",
-    "main.a2b09f13.css.map": "/gameshelves/static/css/main.a2b09f13.css.map",
-    "main.72d1eecb.js.map": "/gameshelves/static/js/main.72d1eecb.js.map",
+    "main.b08cf73f.css.map": "/gameshelves/static/css/main.b08cf73f.css.map",
+    "main.ad0a3a61.js.map": "/gameshelves/static/js/main.ad0a3a61.js.map",
     "787.bf72e23d.chunk.js.map": "/gameshelves/static/js/787.bf72e23d.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a2b09f13.css",
-    "static/js/main.72d1eecb.js"
+    "static/css/main.b08cf73f.css",
+    "static/js/main.ad0a3a61.js"
   ]
 }
