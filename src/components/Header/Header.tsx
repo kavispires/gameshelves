@@ -5,8 +5,8 @@ import { Menu } from './Menu';
 export function Header() {
   return (
     <Layout.Header className="header">
-      <div className="header-logo">
-        <Image src={logo} height={32} preview={false} /> <h1 className="header-logo-title">Game Shelves</h1>
+      <div className="header__logo">
+        <Image src={logo} height={32} preview={false} /> <h1 className="header__logo-title">Game Shelves</h1>
       </div>
 
       <Menu />

@@ -1,0 +1,14 @@
+.header {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  background-color: var(--black);
+
+  &__logo {
+    display: flex;
+  }
+
+  &__logo-title {
+    color: white;
+    margin-left: 1rem;
+  }
+}
