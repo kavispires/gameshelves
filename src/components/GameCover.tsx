@@ -7,6 +7,6 @@ interface GameCoverProps extends ImageProps {
   width: number;
 }
 
-export const GameCover: React.FunctionComponent<GameCoverProps> = ({ src, name, width, ...rest }) => {
+export function GameCover({ src, name, width, ...rest }: GameCoverProps) {
   return <Image src={src} width={80} fallback={URLS.BGG_NO_IMAGE} title={`Cover for: ${name}`} {...rest} />;
-};
+}

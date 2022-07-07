@@ -49,7 +49,7 @@ export function MergeCard({
       title: 'Cover',
       dataIndex: 'thumbnail',
       key: 'thumbnail',
-      render: (value: string) => <Image src={value} width={50} />,
+      render: (value: string) => <Image src={value} width={50} preview={false} />,
     },
     {
       title: 'Name',

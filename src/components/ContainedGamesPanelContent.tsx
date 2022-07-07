@@ -1,5 +1,5 @@
-import { Button, Image } from 'antd';
-import { URLS } from 'utils/constants';
+import { Button } from 'antd';
+import { GameCover } from './GameCover';
 import { GameTypeSelect } from './GameTypeSelect';
 
 type ContainedGamesPanelContentProps = {
@@ -11,13 +11,7 @@ export function ContainedGamesPanelContent({ games }: ContainedGamesPanelContent
     <>
       {games.map((game, index) => (
         <div key={`contained-${game.id}`} className="contained-game">
-          <Image
-            src={game.thumbnail}
-            width={80}
-            fallback={URLS.BGG_NO_IMAGE}
-            className="game-card__image"
-            title={`Cover for: ${game.name}`}
-          />
+          <GameCover src={game.thumbnail} name={game.name} width={80} className="game-card__image" />
           <span className="a">{game.name}</span>
           <span className="a">
             <GameTypeSelect value={game.type} />

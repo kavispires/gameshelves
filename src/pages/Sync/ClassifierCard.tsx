@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   Descriptions,
-  Image,
   InputNumber,
   Popconfirm,
   Segmented,
@@ -11,6 +10,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import { GameCover } from 'components';
 import { useStep } from 'hooks';
 import { BOX_SIZES, GAME_TYPES } from 'utils/constants';
 import { DEFAULT_BOX_DIMENSIONS } from './constants';
@@ -114,8 +114,15 @@ function GameClassifier({ game, classifications, setClassifications }: GameClass
   return (
     <Descriptions title={`${game.name} (${game.id})`} bordered size="small" layout="vertical" column={1}>
       <Descriptions.Item label="Name">
-        <Image src={game.image} width={50} height={50} preview={false} /> <span>{game.name}</span>{' '}
-        {game.status === 'PREORDERED' && <Tag color="yellow">Preorder</Tag>}
+        <GameCover
+          src={game.image}
+          name={game.name}
+          width={50}
+          height={50}
+          preview={false}
+          className="game-card__image"
+        />
+        <span>{game.name}</span> {game.status === 'PREORDERED' && <Tag color="yellow">Preorder</Tag>}
       </Descriptions.Item>
       <Descriptions.Item label="Type">
         <Segmented
