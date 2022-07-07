@@ -1,10 +1,15 @@
 import { AutoComplete } from 'antd';
-import { useQueryShelvedGames } from 'hooks';
+import { useNavigate } from 'react-router-dom';
 
-export function SearchBar() {
-  const { searchOptions } = useQueryShelvedGames();
+type SearchBarProps = {
+  searchOptions: SearchOption[];
+};
 
-  const onSelect = (e: any) => console.log({ select: e });
+export function SearchBar({ searchOptions }: SearchBarProps) {
+  // const searchOptions = [{ label: 'a', value: 'b' }];
+  const navigate = useNavigate();
+
+  const onSelect = (entryId: string) => navigate(`/shelves/${entryId}`);
   // const onSearch = (e: any) => console.log({ search: e });
 
   return (
