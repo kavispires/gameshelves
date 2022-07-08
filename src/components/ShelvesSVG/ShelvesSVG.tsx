@@ -3,15 +3,22 @@ import { ActiveShelves } from './paths/ActiveShelves';
 import { UnshelvedGames } from './paths/UnshelvedGames';
 import { WestShelf } from './paths/WestShelf';
 import { Window } from './paths/Window';
+import clsx from 'clsx';
 
 type ShelvesSVGProps = {
   active?: ShelfId[];
   perShelf?: Record<ShelfId, ShelfEntry[]>;
+  className?: string;
 };
 
-export function ShelvesSVG({ active, perShelf, ...rest }: ShelvesSVGProps) {
+export function ShelvesSVG({ active, perShelf, className, ...rest }: ShelvesSVGProps) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 360" {...rest}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 768 360"
+      className={clsx('shelves-svg', className)}
+      {...rest}
+    >
       <Window />
       <WestShelf />
       <EastShelf />
