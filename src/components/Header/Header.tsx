@@ -6,7 +6,8 @@ export function Header() {
   return (
     <Layout.Header className="header">
       <div className="header__logo">
-        <Image src={logo} height={32} preview={false} /> <h1 className="header__logo-title">Game Shelves</h1>
+        <Image src={logo} height={32} preview={false} className="header__logo-icon" />{' '}
+        <h1 className="header__logo-title">Game Shelves</h1>
       </div>
 
       <Menu />

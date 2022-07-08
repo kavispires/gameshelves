@@ -4,7 +4,11 @@
   background-color: var(--black);
 
   &__logo {
-    display: flex;
+    display: inline-flex;
+  }
+
+  &__logo-icon {
+    width: 32px;
   }
 
   &__logo-title {
