@@ -2,6 +2,7 @@ import { Alert, Button, Card, Space, Spin } from 'antd';
 import { getGameRef, useBatchMutateGames, useMutateShelvedGames } from 'hooks';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { print } from 'utils/helpers';
 import { prepareGamesToBeSaved } from './utils';
 
 type SaveDataCardProps = {
@@ -20,7 +21,7 @@ export function SaveDataCard({ dataToBeAdded, classifications }: SaveDataCardPro
   const performSave = () => {
     shelvedGamesMutation.mutate(shelvedGames);
     games.forEach((game) => {
-      console.log('adding to batch', game.id);
+      print('Adding to batch', undefined, game.id);
       batch.set(getGameRef(`${game.id}`), game);
     });
     batchSaveGamesMutation.mutate();

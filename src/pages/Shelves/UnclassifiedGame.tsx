@@ -7,10 +7,10 @@ type UnclassifiedGameProps = {
 };
 
 export function UnclassifiedGame({ game }: UnclassifiedGameProps) {
-  const { updateEntry, isMutated, mutatedGame, save } = useMutateShelfEntry(game);
+  const { updateEntry, isMutated, mutatedGame, save, isSaving } = useMutateShelfEntry(game);
 
   return (
-    <GameCard game={game} isMutated={isMutated} save={save}>
+    <GameCard game={game} isMutated={isMutated} save={save} isSaving={isSaving}>
       <div className="game-card-data">
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} /> This is an unclassified game instance. Edit

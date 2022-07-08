@@ -26,9 +26,10 @@ export function useQueryShelvedGames() {
 
     orderBy(Object.values(response), ['name']).forEach((entry) => {
       // Handle search options
-      entry.contains.forEach((containedGame) => {
+      entry.contains.forEach((containedGame, index) => {
+        const box = index === 0 && entry.box !== 'none' ? ' [BOX]' : '';
         searchOptionsResult.push({
-          label: `${containedGame.name} [${containedGame.type}]`,
+          label: `${containedGame.name} [${containedGame.type}]${box}`,
           value: entry.id,
         });
       });

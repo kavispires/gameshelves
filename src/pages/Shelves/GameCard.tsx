@@ -8,15 +8,16 @@ type GameCardProps = {
   children: [ReactNode, ReactNode];
   isMutated?: boolean;
   save: GenericFunction;
+  isSaving: boolean;
 };
 
-export function GameCard({ game, children, isMutated = false, save }: GameCardProps) {
+export function GameCard({ game, children, isMutated = false, save, isSaving = false }: GameCardProps) {
   return (
     <Card
       title={game.name}
       extra={
         isMutated && (
-          <Button type="primary" size="small" danger onClick={save}>
+          <Button type="primary" size="small" danger onClick={save} loading={isSaving}>
             Save
           </Button>
         )

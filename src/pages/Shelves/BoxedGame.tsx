@@ -1,8 +1,7 @@
-import { Collapse } from 'antd';
+import { Alert, Collapse } from 'antd';
 import { BoxSizeSelect, ContainedGamesPanelContent, GameTypeTag, ShelvesSVG } from 'components';
 import { ShelfAction } from 'components/ShelfAction';
 import { useMutateShelfEntry } from 'hooks/useMutateShelfEntry';
-import { useState } from 'react';
 import { GameCard } from './GameCard';
 
 type BoxedGameProps = {
@@ -10,12 +9,15 @@ type BoxedGameProps = {
 };
 
 export function BoxedGame({ game }: BoxedGameProps) {
-  const { updateEntry, isMutated, mutatedGame, updateEntriesToBeOrphan, save } = useMutateShelfEntry(game);
-  const [activeCollapse, setActiveCollapse] = useState('contained-games');
+  const { updateEntry, isMutated, mutatedGame, updateEntriesToBeOrphan, save, isSaving, saveError } =
+    useMutateShelfEntry(game);
 
   return (
-    <GameCard game={game} isMutated={isMutated} save={save}>
+    <GameCard game={game} isMutated={isMutated} save={save} isSaving={isSaving}>
       <div className="game-card-data">
+        {Boolean(saveError) && (
+          <Alert type="error" message="Failed to save" description={JSON.stringify(saveError)} />
+        )}
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} />
         </p>
@@ -34,7 +36,7 @@ export function BoxedGame({ game }: BoxedGameProps) {
       <div className="game-card-data">
         <Collapse defaultActiveKey={['contained-games']}>
           {/* TODO: Add way to add and remove contained games, except [0] */}
-          <Collapse.Panel key="contained-games" header="Items in this box">
+          <Collapse.Panel key="contained-games" header={`Items in this box (${mutatedGame.contains.length})`}>
             <ContainedGamesPanelContent
               games={mutatedGame.contains}
               containerName={mutatedGame.name}

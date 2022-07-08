@@ -13,7 +13,9 @@ export function GameTypeSelect({ value, onChange = () => {}, disabled = false }:
     <CardItem label="Game Type">
       <Select value={value} style={{ width: 100 }} onSelect={onChange} size="small" disabled={disabled}>
         {GAME_TYPES.map((gameType) => (
-          <Select.Option value={gameType}>{gameType}</Select.Option>
+          <Select.Option key={gameType} value={gameType}>
+            {gameType}
+          </Select.Option>
         ))}
       </Select>
     </CardItem>
