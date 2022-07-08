@@ -14,8 +14,8 @@ import { Sync } from './Sync/Sync';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: Infinity,
-      cacheTime: Infinity,
+      // staleTime: Infinity,
+      // cacheTime: Infinity,
       refetchOnWindowFocus: false,
     },
   },

@@ -26,9 +26,10 @@ export function useQueryShelvedGames() {
 
     orderBy(Object.values(response), ['name']).forEach((entry) => {
       // Handle search options
+      // TODO: should show all games, temporarily showing only owned boxes and orphans
       entry.contains.forEach((containedGame, index) => {
         const box = index === 0 && entry.box !== 'none' ? ' [BOX]' : '';
-        if (index === 0) {
+        if (index === 0 && entry.box !== 'unknown') {
           searchOptionsResult.push({
             label: `${containedGame.name} [${containedGame.type}]${box}`,
             value: entry.id,
