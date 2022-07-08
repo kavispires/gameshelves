@@ -7,9 +7,9 @@ type OrphanGameProps = {
 };
 
 export function OrphanGame({ game }: OrphanGameProps) {
-  const { updateEntry, isMutated, mutatedGame, save, isSaving } = useMutateShelfEntry(game);
+  const { updateEntry, isMutated, mutatedGame, save, saveResult } = useMutateShelfEntry(game);
   return (
-    <GameCard game={game} isMutated={isMutated} save={save} isSaving={isSaving}>
+    <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
       <div className="game-card-data">
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} /> This is an orphan instance.

@@ -9,14 +9,14 @@ type BoxedGameProps = {
 };
 
 export function BoxedGame({ game }: BoxedGameProps) {
-  const { updateEntry, isMutated, mutatedGame, updateEntriesToBeOrphan, save, isSaving, saveError } =
+  const { updateEntry, isMutated, mutatedGame, updateEntriesToBeOrphan, save, saveResult } =
     useMutateShelfEntry(game);
 
   return (
-    <GameCard game={game} isMutated={isMutated} save={save} isSaving={isSaving}>
+    <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
       <div className="game-card-data">
-        {Boolean(saveError) && (
-          <Alert type="error" message="Failed to save" description={JSON.stringify(saveError)} />
+        {saveResult.isError && (
+          <Alert type="error" message="Failed to save" description={JSON.stringify(saveResult.error)} />
         )}
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} />

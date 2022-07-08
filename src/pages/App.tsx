@@ -2,6 +2,7 @@ import { ConfigProvider, Layout } from 'antd';
 import { DataQueryWrapper } from 'components';
 import { Header } from 'components/Header/Header';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { ReactQueryDevtools } from 'react-query/devtools';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Home } from './Home/Home';
 import { Login } from './Login/Login';
@@ -48,6 +49,7 @@ export function App() {
             </Routes>
           </DataQueryWrapper>
         </HashRouter>
+        <ReactQueryDevtools />
       </Layout>
     </QueryClientProvider>
   );

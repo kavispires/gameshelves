@@ -1,5 +1,6 @@
 import { useFirestoreDocumentMutation } from '@react-query-firebase/firestore';
 import { doc } from 'firebase/firestore';
+import { queryClient } from 'pages/App';
 import { firestore } from 'services/firebase';
 
 /**
@@ -10,5 +11,15 @@ import { firestore } from 'services/firebase';
 export function useMutateGame(id: GameId) {
   const ref = doc(firestore, 'games', id);
 
-  return useFirestoreDocumentMutation(ref);
+  return useFirestoreDocumentMutation<Record<string, GameEntry>>(
+    ref,
+    {
+      merge: true,
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(id);
+      },
+    }
+  );
 }

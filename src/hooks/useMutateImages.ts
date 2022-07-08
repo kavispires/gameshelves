@@ -16,7 +16,7 @@ export function useMutateImages() {
     },
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['general', 'images']);
+        queryClient.invalidateQueries('images');
       },
     }
   );

@@ -16,7 +16,7 @@ export function useMutateShelvedGames(reset: boolean = false) {
     },
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['general', 'shelved-games']);
+        queryClient.invalidateQueries('shelved-games');
       },
     }
   );

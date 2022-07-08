@@ -28,10 +28,12 @@ export function useQueryShelvedGames() {
       // Handle search options
       entry.contains.forEach((containedGame, index) => {
         const box = index === 0 && entry.box !== 'none' ? ' [BOX]' : '';
-        searchOptionsResult.push({
-          label: `${containedGame.name} [${containedGame.type}]${box}`,
-          value: entry.id,
-        });
+        if (index === 0) {
+          searchOptionsResult.push({
+            label: `${containedGame.name} [${containedGame.type}]${box}`,
+            value: entry.id,
+          });
+        }
       });
 
       // Handle per shelf

@@ -1,5 +1,6 @@
 import { cloneDeep, isEqual } from 'lodash';
 import { useMemo, useState } from 'react';
+import { UseMutationResult } from 'react-query';
 import { useMutateShelvedGames } from './useMutateShelvedGames';
 import { useQueryShelvedGames } from './useQueryShelvedGames';
 
@@ -79,8 +80,6 @@ export function useMutateShelfEntry(shelfEntry: ShelfEntry) {
     save,
     isMutated,
     updateEntriesToBeOrphan,
-    isSaving: mutateShelvedGames.isLoading,
-    saveError: mutateShelvedGames.error,
-    isSaved: mutateShelvedGames.isSuccess,
+    saveResult: mutateShelvedGames as UseMutationResult,
   };
 }
