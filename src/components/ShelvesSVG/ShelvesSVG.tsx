@@ -4,14 +4,16 @@ import { UnshelvedGames } from './paths/UnshelvedGames';
 import { WestShelf } from './paths/WestShelf';
 import { Window } from './paths/Window';
 import clsx from 'clsx';
+import { ClickableAreas } from './paths/ClickableAreas';
 
 type ShelvesSVGProps = {
   active?: ShelfId[];
   perShelf?: Record<ShelfId, ShelfEntry[]>;
   className?: string;
+  onClick?: GenericFunction;
 };
 
-export function ShelvesSVG({ active, perShelf, className, ...rest }: ShelvesSVGProps) {
+export function ShelvesSVG({ active, perShelf, className, onClick, ...rest }: ShelvesSVGProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -24,6 +26,7 @@ export function ShelvesSVG({ active, perShelf, className, ...rest }: ShelvesSVGP
       <EastShelf />
       <UnshelvedGames quantity={100} />
       <ActiveShelves active={active ?? []} />
+      {Boolean(onClick) && <ClickableAreas onClick={onClick || (() => {})} />}
     </svg>
   );
 }

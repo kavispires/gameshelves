@@ -68,30 +68,25 @@ export function ActiveShelves({ active }: ActiveShelvesProps) {
       </g>
 
       <g className="ww-sl">
-        {active.includes('ww-sl-0') && (
-          <path fill="#f7931e" d="M262 25.61h50.77v38.35H262zM316.82 25.61h51.19v38.35h-51.19z"></path>
-        )}
-        {active.includes('ww-sl-1') && (
-          <path fill="#0f0" d="M262 66.52h50.77v35.98H262zM316.82 66.52h51.19v35.98h-51.19z"></path>
-        )}
-        {active.includes('ww-sl-2') && (
-          <path fill="#0ff" d="M262 105.07h50.77v37.06H262zM316.82 105.07h51.19v37.06h-51.19z"></path>
-        )}
+        {active.includes('ww-sl-0') && <path fill="#f7931e" d="M262 25.61h50.77v38.35H262z"></path>}
+        {active.includes('ww-sl-1') && <path fill="#0f0" d="M262 66.52h50.77v35.98H262z"></path>}
+        {active.includes('ww-sl-2') && <path fill="#0ff" d="M262 105.07h50.77v37.06H262z"></path>}
         {active.includes('ww-sl-3') && <path fill="#00f" d="M262 144.66h50.77v36.59H262z"></path>}
-        {active.includes('ww-sl-4') && <path fill="#1b1464" d="M262 183.48h106.01v44.94H262z"></path>}
-        {active.includes('ww-sl-5') && <path fill="#00f" d="M316.82 144.66h51.19v36.59h-51.19z"></path>}
+
+        {active.includes('ww-sl-4') && <path fill="#f7931e" d="M316.82 25.61h51.19v38.35h-51.19z"></path>}
+        {active.includes('ww-sl-5') && <path fill="#0f0" d="M316.82 66.52h51.19v35.98h-51.19z"></path>}
+        {active.includes('ww-sl-6') && <path fill="#0ff" d="M316.82 105.07h51.19v37.06h-51.19z"></path>}
+        {active.includes('ww-sl-7') && <path fill="#00f" d="M316.82 144.66h51.19v36.59h-51.19z"></path>}
+        {active.includes('ww-sl-8') && <path fill="#1b1464" d="M262 183.48h106.01v44.94H262z"></path>}
       </g>
 
       <g className="ww-cl">
-        {active.includes('ww-cl-0') && (
-          <path fill="#22b573" d="M262 234.69h50.77v23.11H262zM316.77 234.69h50.66v23.11h-50.66z"></path>
-        )}
-        {active.includes('ww-cl-0') && (
-          <path fill="#29abe2" d="M262 260.02h50.77v21.31H262zM316.77 260.02h50.66v21.31h-50.66z"></path>
-        )}
-        {active.includes('ww-cl-0') && (
-          <path fill="#ee9781" d="M262 283.63h50.77v21.31H262zM316.77 283.63h50.66v21.31h-50.66z"></path>
-        )}
+        {active.includes('ww-cl-0') && <path fill="#22b573" d="M262 234.69h50.77v23.11H262z"></path>}
+        {active.includes('ww-cl-1') && <path fill="#29abe2" d="M262 260.02h50.77v21.31H262z"></path>}
+        {active.includes('ww-cl-2') && <path fill="#ee9781" d="M262 283.63h50.77v21.31H262z"></path>}
+        {active.includes('ww-cl-3') && <path fill="#22b573" d="M316.77 234.69h50.66v23.11h-50.66z"></path>}
+        {active.includes('ww-cl-4') && <path fill="#29abe2" d="M316.77 260.02h50.66v21.31h-50.66z"></path>}
+        {active.includes('ww-cl-5') && <path fill="#ee9781" d="M316.77 283.63h50.66v21.31h-50.66z"></path>}
       </g>
 
       <g className="ww-dc">
@@ -102,27 +97,25 @@ export function ActiveShelves({ active }: ActiveShelvesProps) {
       </g>
 
       <g className="ww-sr">
-        {active.includes('ww-sr-0') && (
-          <path fill="#f7931e" d="M666.44 25.49h45.93v38.46h-45.93zM716.59 25.49h45.68v38.46h-45.68z"></path>
-        )}
-        {active.includes('ww-sr-1') && (
-          <path fill="#2e3192" d="M666.44 66.41h45.93v36.29h-45.93zM716.59 66.41h45.68v36.29h-45.68z"></path>
-        )}
-        {active.includes('ww-sr-2') && (
-          <path
-            fill="#a67c52"
-            d="M666.44 105.24h45.93v37.04h-45.93zM716.59 105.24h45.68v37.04h-45.68z"
-          ></path>
-        )}
-        {active.includes('ww-sr-3') && <path fill="red" d="M666.44 144.81h45.93v36.43h-45.93z"></path>}
-        {active.includes('ww-sr-4') && <path fill="#662d91" d="M666.44 183.51h95.83v45.05h-95.83z"></path>}
-        {active.includes('ww-sr-5') && <path fill="#c69c6d" d="M716.59 144.81h45.68v36.43h-45.68z"></path>}
+        {active.includes('ww-sr-0') && <path fill="#f7931e" d="M666.44 25.49h45.93v38.46h-45.93z"></path>}
+        {active.includes('ww-sr-1') && <path fill="#2e3192" d="M666.44 66.41h45.93v36.29h-45.93z"></path>}
+        {active.includes('ww-sr-2') && <path fill="#a67c52" d="M666.44 105.24h45.93v37.04h-45.93z"></path>}
+        {active.includes('ww-sr-3') && <path fill="#c69c6d" d="M666.44 144.81h45.93v36.43h-45.93z"></path>}
+        {active.includes('ww-sr-4') && <path fill="#f7931e" d="M716.59 25.49h45.68v38.46h-45.68z"></path>}
+        {active.includes('ww-sr-5') && <path fill="#2e3192" d="M716.59 66.41h45.68v36.29h-45.68z"></path>}
+        {active.includes('ww-sr-6') && <path fill="#a67c52" d="M716.59 105.24h45.68v37.04h-45.68z"></path>}
+        {active.includes('ww-sr-7') && <path fill="#c69c6d" d="M716.59 144.81h45.68v36.43h-45.68z"></path>}
+
+        {active.includes('ww-sr-8') && <path fill="#662d91" d="M666.44 183.51h95.83v45.05h-95.83z"></path>}
       </g>
 
       <g className="ww-cr">
-        {active.includes('ww-cr-0') && <path fill="#2e3192" d="M666.34 234.69h96.02v23.03h-96.02z"></path>}
-        {active.includes('ww-cr-1') && <path fill="#29abe2" d="M666.34 260.06h96.02v21.18h-96.02z"></path>}
-        {active.includes('ww-cr-2') && <path fill="#00a99d" d="M666.34 283.57h96.02v21.18h-96.02z"></path>}
+        {active.includes('ww-cr-0') && <path fill="#2e3192" d="M666.34 234.69h46.07v23.03h-46.07z"></path>}
+        {active.includes('ww-cr-1') && <path fill="#297873" d="M666.34 260.06h46.07v21.18h-46.07z"></path>}
+        {active.includes('ww-cr-2') && <path fill="#00a99d" d="M666.34 283.57h46.07v21.18h-46.07z"></path>}
+        {active.includes('ww-cr-3') && <path fill="#2e3192" d="M716.39 234.69h46.07v23.03h-46.07z"></path>}
+        {active.includes('ww-cr-4') && <path fill="#297873" d="M716.39 260.06h46.07v21.18h-46.07z"></path>}
+        {active.includes('ww-cr-5') && <path fill="#00a99d" d="M716.39 283.57h46.07v21.18h-46.07z"></path>}
       </g>
 
       <g className="unshelved">

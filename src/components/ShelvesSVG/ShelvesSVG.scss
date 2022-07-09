@@ -4,3 +4,23 @@
   margin: 1rem auto;
   display: block;
 }
+
+svg path {
+  transition: d 1s;
+}
+
+.shelf-hover path:hover {
+  cursor: pointer;
+}
+
+.clickable-path {
+  fill: var(--info-color);
+  fill-opacity: 0.1;
+  stroke-width: 3.672px;
+  stroke-linejoin: round;
+  cursor: pointer;
+
+  &:hover {
+    stroke: var(--info-color);
+  }
+}
