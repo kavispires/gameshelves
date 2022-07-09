@@ -36,6 +36,15 @@ export function useMutateShelfEntry(shelfEntry: ShelfEntry) {
     setMutation((s) => ({ ...s, contains: mutatedGame.contains.filter((entry) => entry.id !== item.id) }));
   }
 
+  function updateContainedGameType(gameId: string, gameType: GameType) {
+    const containedIndex = mutatedGame.contains.findIndex((g) => g.id === gameId);
+    if (containedIndex > -1) {
+      const containsCopy = cloneDeep(mutatedGame.contains);
+      containsCopy[containedIndex].type = gameType;
+      setMutation((s) => ({ ...s, contains: containsCopy }));
+    }
+  }
+
   function save() {
     const shouldSaveOrphans = Object.keys(entriesToBeOrphaned).length > 0;
     const shouldSave = isMutated || shouldSaveOrphans;
@@ -80,6 +89,7 @@ export function useMutateShelfEntry(shelfEntry: ShelfEntry) {
     save,
     isMutated,
     updateEntriesToBeOrphan,
+    updateContainedGameType,
     saveResult: mutateShelvedGames as UseMutationResult,
   };
 }

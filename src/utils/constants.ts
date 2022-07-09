@@ -331,6 +331,42 @@ export const SHELVES_IDS = {
       depth: 0,
     },
   },
+  'ww-sl-5': {
+    id: 'ww-sl-5',
+    description: 'West Wall Left Shelf 5',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sl-6': {
+    id: 'ww-sl-6',
+    description: 'West Wall Left Shelf 6',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sl-7': {
+    id: 'ww-sl-7',
+    description: 'West Wall Left Shelf 7',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sl-8': {
+    id: 'ww-sl-8',
+    description: 'West Wall Left Shelf Large',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
   'ww-sr-0': {
     id: 'ww-sr-0',
     description: 'West Wall Right Shelf 0',
@@ -376,6 +412,42 @@ export const SHELVES_IDS = {
       depth: 0,
     },
   },
+  'ww-sr-5': {
+    id: 'ww-sr-5',
+    description: 'West Wall Right Shelf 5',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sr-6': {
+    id: 'ww-sr-6',
+    description: 'West Wall Right Shelf 6',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sr-7': {
+    id: 'ww-sr-7',
+    description: 'West Wall Right Shelf 7',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-sr-8': {
+    id: 'ww-sr-8',
+    description: 'West Wall Right Shelf 8',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
   'ww-cl-0': {
     id: 'ww-cl-0',
     description: 'West Wall Left Cabinet 0',
@@ -403,6 +475,33 @@ export const SHELVES_IDS = {
       depth: 0,
     },
   },
+  'ww-cl-3': {
+    id: 'ww-cl-3',
+    description: 'West Wall Left Cabinet 3',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-cl-4': {
+    id: 'ww-cl-4',
+    description: 'West Wall Left Cabinet 4',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-cl-5': {
+    id: 'ww-cl-5',
+    description: 'West Wall Left Cabinet 5',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
   'ww-cr-0': {
     id: 'ww-cr-0',
     description: 'West Wall Right Cabinet 0',
@@ -424,6 +523,33 @@ export const SHELVES_IDS = {
   'ww-cr-2': {
     id: 'ww-cr-2',
     description: 'West Wall Right Cabinet 2',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-cr-3': {
+    id: 'ww-cr-3',
+    description: 'West Wall Right Cabinet 3',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-cr-4': {
+    id: 'ww-cr-4',
+    description: 'West Wall Right Cabinet 4',
+    dimensions: {
+      width: 0,
+      height: 0,
+      depth: 0,
+    },
+  },
+  'ww-cr-5': {
+    id: 'ww-cr-5',
+    description: 'West Wall Right Cabinet 5',
     dimensions: {
       width: 0,
       height: 0,

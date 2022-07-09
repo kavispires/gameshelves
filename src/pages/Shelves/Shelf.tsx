@@ -1,4 +1,4 @@
-import { Layout, Select } from 'antd';
+import { Layout } from 'antd';
 import { LoadingPage } from 'components/LoadingPage';
 import { useQueryShelvedGames } from 'hooks';
 import { useParams } from 'react-router-dom';
@@ -9,19 +9,13 @@ import { UnclassifiedGame } from './UnclassifiedGame';
 
 export function Shelf() {
   const { id = '' } = useParams();
-  const { isLoading, getShelvedGame, isOrphan, isBoxed, isShelved, orphanedGames } = useQueryShelvedGames();
+  const { isLoading, getShelvedGame, isOrphan, isBoxed } = useQueryShelvedGames();
 
   const shelvedGame = getShelvedGame(id);
-
-  const handleChange = (e: any) => console.log(e);
 
   if (isLoading) {
     return <LoadingPage />;
   }
-
-  const defaultContainedValues = shelvedGame.contains.map((containedEntry) => {
-    return <Select.Option key={containedEntry.id}>{containedEntry.name}</Select.Option>;
-  });
 
   /**
    * If Boxed Game

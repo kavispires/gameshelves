@@ -1,4 +1,4 @@
-import { CloseCircleFilled, CloseOutlined } from '@ant-design/icons';
+import { CloseCircleFilled } from '@ant-design/icons';
 import { Button, Popconfirm } from 'antd';
 import { GameCover } from './GameCover';
 import { GameTypeSelect } from './GameTypeSelect';
@@ -7,9 +7,10 @@ type ContainedGameProps = {
   game: ContainedGameEntry;
   index: number;
   removeContainedGame: GenericFunction;
+  updateType: GenericFunction;
 };
 
-export function ContainedGame({ game, index, removeContainedGame }: ContainedGameProps) {
+export function ContainedGame({ game, index, removeContainedGame, updateType }: ContainedGameProps) {
   return (
     <li key={`contained-${game.id}`} className="contained-game">
       <GameCover id={game.id} name={game.name} width={80} height={80} className="game-card__image" />
@@ -17,7 +18,7 @@ export function ContainedGame({ game, index, removeContainedGame }: ContainedGam
         {game.name}
       </span>
       <span className="contained-game__type">
-        <GameTypeSelect value={game.type} />
+        <GameTypeSelect gameId={game.id} value={game.type} onChange={updateType} />
       </span>
       {index > 0 && (
         <span className="contained-game__remove">

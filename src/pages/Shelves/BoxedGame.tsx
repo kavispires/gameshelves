@@ -9,8 +9,15 @@ type BoxedGameProps = {
 };
 
 export function BoxedGame({ game }: BoxedGameProps) {
-  const { updateEntry, isMutated, mutatedGame, updateEntriesToBeOrphan, save, saveResult } =
-    useMutateShelfEntry(game);
+  const {
+    updateEntry,
+    isMutated,
+    mutatedGame,
+    updateEntriesToBeOrphan,
+    updateContainedGameType,
+    save,
+    saveResult,
+  } = useMutateShelfEntry(game);
 
   return (
     <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
@@ -42,6 +49,7 @@ export function BoxedGame({ game }: BoxedGameProps) {
               containerName={mutatedGame.name}
               onAddContainedGame={(list: ContainedGameEntry[]) => updateEntry('contains', list)}
               removeContainedGame={updateEntriesToBeOrphan}
+              updateType={updateContainedGameType}
             />
           </Collapse.Panel>
           <Collapse.Panel key="shelves" header="Game location in shelves">

@@ -6,6 +6,7 @@ type ContainedGamesPanelContentProps = {
   containerName: string;
   onAddContainedGame: GenericFunction;
   removeContainedGame: GenericFunction;
+  updateType: GenericFunction;
 };
 
 export function ContainedGamesPanelContent({
@@ -13,6 +14,7 @@ export function ContainedGamesPanelContent({
   containerName,
   onAddContainedGame,
   removeContainedGame,
+  updateType,
 }: ContainedGamesPanelContentProps) {
   return (
     <ul className="contained-game-list">
@@ -22,6 +24,7 @@ export function ContainedGamesPanelContent({
           game={game}
           index={index}
           removeContainedGame={removeContainedGame}
+          updateType={updateType}
         />
       ))}
       <li className="contained-game contained-game__add-game">
