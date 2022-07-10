@@ -210,3 +210,11 @@ interface SearchOption {
   label: string;
   value: string;
 }
+
+interface ShelvesIds {
+  [key: ShelfId]: {
+    id: ShelfId;
+    description: string;
+    dimensions: BoxDimensions;
+  };
+}

@@ -33,7 +33,7 @@ export const BOX_SIZES = [
   'unknown',
 ];
 
-export const SHELVES_IDS = {
+export const SHELVES_IDS: ShelvesIds = {
   'ew-cl-0': {
     id: 'ew-cl-0',
     description: 'East Wall Left Cabinet 0',
