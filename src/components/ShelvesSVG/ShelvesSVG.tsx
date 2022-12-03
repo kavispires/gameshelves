@@ -5,6 +5,7 @@ import { WestShelf } from './paths/WestShelf';
 import { Window } from './paths/Window';
 import clsx from 'clsx';
 import { ClickableAreas } from './paths/ClickableAreas';
+import { ShelfContent } from './paths/ShelfContent';
 
 type ShelvesSVGProps = {
   active?: ShelfId[];
@@ -26,6 +27,7 @@ export function ShelvesSVG({ active, perShelf, className, onClick, ...rest }: Sh
       <EastShelf />
       <UnshelvedGames quantity={100} />
       <ActiveShelves active={active ?? []} />
+      <ShelfContent perShelf={perShelf ?? {}} />
       {Boolean(onClick) && <ClickableAreas onClick={onClick || (() => {})} />}
     </svg>
   );

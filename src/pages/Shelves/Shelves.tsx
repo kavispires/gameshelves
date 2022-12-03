@@ -6,10 +6,6 @@ import { cloneDeep, orderBy } from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
 import { SEPARATOR, SHELVES_IDS } from 'utils/constants';
 
-import { BoxedGame } from './BoxedGame';
-import { OrphanGame } from './OrphanGame';
-import { UnclassifiedGame } from './UnclassifiedGame';
-
 export function Shelves() {
   const { isLoading, boxedGames, perShelf, response, refetch } = useQueryShelvedGames();
   const mutateShelvedGames = useMutateShelvedGames();
@@ -84,9 +80,9 @@ export function Shelves() {
   return (
     <Layout.Content className="content">
       <Typography.Title level={2}>Shelves</Typography.Title>
-      <ShelvesSVG onClick={handleChange} active={activeShelf ? [activeShelf] : []} />
+      <ShelvesSVG onClick={handleChange} active={activeShelf ? [activeShelf] : []} perShelf={perShelf} />
       <Modal
-        title={`${activeShelfData?.description ?? 'Unknown'}`}
+        title={`${activeShelfData?.description ?? 'Unknown'} - ${activeShelfData?.id}`}
         visible={Boolean(activeShelf)}
         onOk={handleSave}
         okText="Save Shelf"

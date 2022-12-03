@@ -5,8 +5,8 @@ import { useQueryShelvedGames } from 'hooks';
 import { SHELVES_IDS } from 'utils/constants';
 
 export function Home() {
-  const { response, searchOptions, perShelf } = useQueryShelvedGames();
-  console.log({ response });
+  const { searchOptions, perShelf } = useQueryShelvedGames();
+
   return (
     <>
       <Layout.Content className="content">

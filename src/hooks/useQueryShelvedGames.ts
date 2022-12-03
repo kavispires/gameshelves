@@ -23,7 +23,7 @@ export function useQueryShelvedGames() {
     const boxedGamesResult: Record<GameId, ShelfEntry> = {};
     const orphanedGamesResult: Record<GameId, ShelfEntry> = {};
     const unclassifiedGamesResult: Record<GameId, ShelfEntry> = {};
-
+    console.count('Recalculate');
     orderBy(Object.values(response), ['name']).forEach((entry) => {
       // Handle search options
       // TODO: should show all games, temporarily showing only owned boxes and orphans
