@@ -9,7 +9,7 @@ import {
 import { Button, Dropdown } from 'antd';
 import clsx from 'clsx';
 import { useState } from 'react';
-import { matchPath, NavLink, useLocation } from 'react-router-dom';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 
 const items = [
   { to: '/', label: 'Find Game', icon: <SearchOutlined /> },
@@ -22,25 +22,28 @@ const items = [
 export function Menu() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
-  const activeItem = items.find(({ to }) => matchPath({ path: to, end: to === '/' }, pathname));
+  const navigationPath = pathname.startsWith('/games/')
+    ? '/'
+    : pathname.startsWith('/boxes/')
+      ? '/shelves'
+      : pathname;
+  const activeItem = items.find(({ to }) => matchPath({ path: to, end: to === '/' }, navigationPath));
 
   return (
     <nav aria-label="Main" className="flex h-full min-w-0 flex-1 items-center justify-end">
       <div className="hidden h-full items-center gap-6 lg:flex">
         {items.map(({ to, label, icon }) => (
-          <NavLink
+          <Link
             key={to}
             to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              clsx(
-                'box-border inline-flex h-full items-center gap-2 whitespace-nowrap border-0 border-b-2 border-solid border-transparent px-1 text-sm leading-normal hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-paper',
-                isActive ? 'border-b-paper text-paper' : 'text-slate-300',
-              )
-            }
+            aria-current={activeItem?.to === to ? 'page' : undefined}
+            className={clsx(
+              'box-border inline-flex h-full items-center gap-2 whitespace-nowrap border-0 border-b-2 border-solid border-transparent px-1 text-sm leading-normal hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-paper',
+              activeItem?.to === to ? 'border-b-paper text-paper' : 'text-slate-300',
+            )}
           >
             <span aria-hidden="true">{icon}</span> {label}
-          </NavLink>
+          </Link>
         ))}
       </div>
       <Dropdown
@@ -55,9 +58,9 @@ export function Menu() {
             key: to,
             icon: <span aria-hidden="true">{icon}</span>,
             label: (
-              <NavLink to={to} end={to === '/'}>
+              <Link to={to} aria-current={activeItem?.to === to ? 'page' : undefined}>
                 {label}
-              </NavLink>
+              </Link>
             ),
           })),
         }}

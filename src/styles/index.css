@@ -50,6 +50,10 @@ ul {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.15fr) minmax(90px, 0.45fr);
 }
 
+.shelf-table-location {
+  max-width: 560px;
+}
+
 .shelf-section {
   margin: 0;
   min-width: 0;
@@ -60,6 +64,10 @@ ul {
   margin: 0 auto;
   width: 100%;
   height: auto;
+}
+
+.shelf-table-location .shelves-svg {
+  height: 200px;
 }
 
 .shelf-section[data-shelf-section="east"] .shelves-svg {

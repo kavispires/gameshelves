@@ -1,9 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import { catalogGame, library, promosLibrary, shelfEntry } from '../test/fixtures';
 import type { Library } from '../types/library';
-import { findBox, libraryDocuments, prepareImport, projectShelves, readLibrary, updateBox } from './library';
+import {
+  findBox,
+  libraryDocuments,
+  moveBoxes,
+  prepareImport,
+  projectShelves,
+  readLibrary,
+  updateBox,
+} from './library';
 
 describe('catalog and physical boxes', () => {
+  it('moves original and standalone boxes atomically without changing games, contents or other box metadata', () => {
+    const base: Library = {
+      ...library,
+      games: { ...library.games, '2': { ...catalogGame, id: '2' } },
+      boxes: { ...library.boxes, promos: { ...promosLibrary.boxes.promos, contains: ['2'] } },
+    };
+    const next = moveBoxes(base, ['1', 'promos'], 'tv-cr-1');
+    expect(next.games).toBe(base.games);
+    for (const id of ['1', 'promos']) {
+      expect(next.boxes[id]).toEqual({
+        ...base.boxes[id],
+        shelfId: 'tv-cr-1',
+        updatedAt: expect.any(Number),
+      });
+      expect(base.boxes[id].shelfId).toBe('ew-cl-0');
+    }
+    expect(() => moveBoxes(base, ['1', 'missing'], 'tv-cr-1')).toThrow('Unknown box');
+    expect(() => moveBoxes(base, ['1'], 'not-a-shelf')).toThrow('valid shelf');
+    expect(() => moveBoxes({ ...base, revision: null }, ['1'], 'tv-cl-0')).toThrow('Migrate');
+    expect(base.boxes['1'].shelfId).toBe('ew-cl-0');
+  });
+
   it('migrates the promos shoe box without requiring a main BGG entry', () => {
     const base: Library = {
       revision: null,

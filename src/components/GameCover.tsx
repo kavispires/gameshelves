@@ -10,13 +10,14 @@ interface GameCoverProps extends ImageProps {
 }
 
 export function GameCover({ id, type = 'thumbnail', name, width, ...rest }: GameCoverProps) {
-  const { getImages } = useQueryImages();
+  const { getCover, getThumbnail } = useQueryImages();
   return (
     <Image
-      src={getImages(id)[type] || URLS.BGG_NO_IMAGE}
+      src={type === 'image' ? getCover(id) : getThumbnail(id)}
       width={width}
       fallback={URLS.BGG_NO_IMAGE}
       title={`Cover for: ${name}`}
+      alt={name}
       {...rest}
     />
   );

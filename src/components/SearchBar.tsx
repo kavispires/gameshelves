@@ -8,7 +8,7 @@ type SearchBarProps = {
 export function SearchBar({ searchOptions }: SearchBarProps) {
   const navigate = useNavigate();
 
-  const onSelect = (entryId: string) => navigate(`/shelves/${entryId}`);
+  const onSelect = (entryId: string) => navigate(`/games/${encodeURIComponent(entryId)}`);
 
   return (
     <AutoComplete

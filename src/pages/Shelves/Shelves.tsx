@@ -1,190 +1,176 @@
-import { App, Layout, Modal, Select, Table, Typography } from 'antd';
-import { GameCover, ShelvesSVG } from 'components';
-import { LoadingPage } from 'components/LoadingPage';
-import { useMutateShelvedGames, useQueryShelvedGames } from 'hooks';
-import { useLibrary } from 'hooks/useLibrary';
-import { cloneDeep, orderBy } from 'lodash';
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Alert, App, Button, Layout, Modal, Radio, Select, Typography } from 'antd';
+import { ShelvesSVG } from 'components';
+import { useSaveLibrary } from 'hooks/useLibrary';
+import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
+import { useState } from 'react';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SHELVES_IDS } from 'utils/constants';
+import { moveBoxes } from 'utils/library';
+import { NotFound } from '../NotFound/NotFound';
+import { BoxTable } from './BoxTable';
 
 export function Shelves() {
-  const { isLoading, boxedGames, perShelf, response } = useQueryShelvedGames();
+  const { shelfId } = useParams();
+  return <ShelfBrowser key={shelfId ?? 'overview'} shelfId={shelfId} />;
+}
+
+function ShelfBrowser({ shelfId }: { shelfId?: string }) {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const { data: library, boxedGames, perShelf } = useQueryShelvedGames();
+  const save = useSaveLibrary();
   const { notification } = App.useApp();
-  const mutateShelvedGames = useMutateShelvedGames();
-  const { data: library } = useLibrary();
-  const [activeShelf, setActiveShelf] = useState<ShelfId>('');
-  const [onShelf, setOnShelf] = useState<BooleanDictionary>({});
-
-  const onSaveShelves = (shelfId: ShelfId, entries: BooleanDictionary) => {
-    const newShelvedGames = cloneDeep(response);
-    Object.keys(entries).forEach((key) => {
-      if (entries[key]) {
-        newShelvedGames[key].shelfId = shelfId;
-      } else if (newShelvedGames[key].shelfId === shelfId) {
-        newShelvedGames[key].shelfId = 'unshelved';
-      }
-    });
-
-    mutateShelvedGames.mutate(newShelvedGames, { onSuccess: () => setActiveShelf('') });
-  };
-
-  useEffect(() => {
-    if (mutateShelvedGames.isSuccess) {
-      notification.success({ title: 'Shelf saved successfully' });
+  const [adding, setAdding] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  if (!library) return null;
+  if (shelfId && !Object.hasOwn(SHELVES_IDS, shelfId)) {
+    const legacyEntry =
+      library.legacy && Object.hasOwn(library.legacy.shelves, shelfId)
+        ? library.legacy.shelves[shelfId]
+        : undefined;
+    if (Object.hasOwn(library.boxes, shelfId) || (legacyEntry && legacyEntry.box !== 'none')) {
+      return <Navigate to={`/boxes/${encodeURIComponent(shelfId)}`} replace />;
     }
-  }, [mutateShelvedGames.isSuccess, notification]);
+    if (
+      Object.hasOwn(library.games, shelfId) ||
+      Object.values(library.legacy?.shelves ?? {}).some((box) =>
+        box.contains.some((game) => game.id === shelfId),
+      )
+    )
+      return <Navigate to={`/games/${encodeURIComponent(shelfId)}`} replace />;
+    return <NotFound />;
+  }
+  const tableView = Boolean(shelfId) || params.get('view') === 'table';
+  const allBoxes = Object.values(boxedGames);
+  const boxes = shelfId ? allBoxes.filter((box) => box.shelfId === shelfId) : allBoxes;
+  const disabled = Boolean(library.legacy) || save.isPending;
+  const failure = error || save.error?.message;
 
-  useEffect(() => {
-    if (mutateShelvedGames.isError) {
-      notification.error({
-        title: 'Failed to save shelf',
-        description: mutateShelvedGames.error.message,
-      });
+  function place(ids: string[], destination: string, onSuccess?: () => void) {
+    try {
+      if (!library) throw new Error('The library is not loaded.');
+      const next = moveBoxes(library, ids, destination);
+      setError('');
+      save.mutate(
+        { base: library, next },
+        {
+          onSuccess: () => {
+            notification.success({ title: 'Shelf placement saved' });
+            onSuccess?.();
+          },
+        },
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to save shelf placement.');
     }
-  }, [mutateShelvedGames.isError, mutateShelvedGames.error, notification]);
-
-  useEffect(() => {
-    const shelf = perShelf[activeShelf] ?? [];
-    setOnShelf(
-      shelf.reduce((acc: BooleanDictionary, entry) => {
-        acc[entry.id] = true;
-        return acc;
-      }, {}),
-    );
-  }, [perShelf, activeShelf]);
-
-  const boxes = useMemo(
-    () =>
-      orderBy(
-        Object.keys(onShelf)
-          .filter((gameId) => onShelf[gameId] && boxedGames[gameId])
-          .map((gameId) => boxedGames[gameId]),
-        ['name'],
-      ),
-    [onShelf, boxedGames],
-  );
-
-  const handleCancel = () => {
-    setOnShelf({});
-    setActiveShelf('');
-  };
-  const handleSave = () => {
-    onSaveShelves(activeShelf, onShelf);
-  };
-
-  if (isLoading) {
-    return <LoadingPage />;
   }
 
-  const activeShelfData = SHELVES_IDS?.[activeShelf];
-
-  const updateOnShelf = (action: 'add' | 'remove', gameId: ShelfEntryId) => {
-    setOnShelf((v) => ({ ...v, [gameId]: action === 'add' }));
-  };
-
   return (
-    <Layout.Content className="p-4">
-      <Typography.Title level={2}>Shelves</Typography.Title>
-      <ShelvesSVG
-        onSelectShelf={setActiveShelf}
-        active={activeShelf ? [activeShelf] : []}
-        perShelf={perShelf}
-      />
-      <Modal
-        title={`${activeShelfData?.description ?? 'Unknown'} - ${activeShelfData?.id}`}
-        open={Boolean(activeShelf)}
-        onOk={handleSave}
-        okText="Save Shelf"
-        onCancel={handleCancel}
-        confirmLoading={mutateShelvedGames.isPending}
-        okButtonProps={{ disabled: Boolean(library?.legacy) }}
-        cancelButtonProps={{ disabled: mutateShelvedGames.isPending }}
-        closable={false}
-        mask={{ closable: false }}
-      >
-        <AddGameToShelf
-          boxedGames={boxedGames}
-          updateOnShelf={updateOnShelf}
-          onShelf={onShelf}
-          disabled={Boolean(library?.legacy) || mutateShelvedGames.isPending}
+    <Layout.Content className="box-border mx-auto w-full min-w-0 max-w-[1600px] p-4 sm:p-6">
+      {shelfId && <Link to="/shelves">All shelves</Link>}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <Typography.Title level={1} className="!mb-0 !text-3xl">
+          {shelfId ? SHELVES_IDS[shelfId].description : 'Shelves'}
+        </Typography.Title>
+        {shelfId ? (
+          <Button
+            type="primary"
+            disabled={disabled}
+            onClick={() => {
+              setSelected([]);
+              setAdding(true);
+            }}
+          >
+            Add boxes
+          </Button>
+        ) : (
+          <Radio.Group
+            aria-label="Shelf overview view"
+            optionType="button"
+            value={tableView ? 'table' : 'illustrations'}
+            onChange={(event) => setParams(event.target.value === 'table' ? { view: 'table' } : {})}
+            options={[
+              { label: 'Illustrations', value: 'illustrations' },
+              { label: 'Table', value: 'table' },
+            ]}
+          />
+        )}
+      </div>
+      {library.legacy && (
+        <Alert
+          type="info"
+          className="mb-4"
+          title="Import and migrate your library in Settings to edit shelf placements."
         />
-        <InShelfGamesTable games={boxes} />
+      )}
+      {failure && !adding && (
+        <Alert type="error" className="mb-4" title="Shelf placement not saved" description={failure} />
+      )}
+      {shelfId && (
+        <Select
+          aria-label="Browse shelf locations"
+          className="mb-4 w-full sm:max-w-sm"
+          value={shelfId}
+          showSearch
+          optionFilterProp="label"
+          onChange={(id) => navigate(`/shelves/${id}`)}
+          options={Object.entries(SHELVES_IDS).map(([id, shelf]) => ({
+            value: id,
+            label: shelf.description,
+          }))}
+        />
+      )}
+      {(!tableView || shelfId) && (
+        <ShelvesSVG
+          className={shelfId ? 'shelf-table-location' : undefined}
+          shelfId={shelfId}
+          active={shelfId ? [shelfId] : []}
+          perShelf={perShelf}
+          onSelectShelf={shelfId ? undefined : (id) => navigate(`/shelves/${id}`)}
+        />
+      )}
+      {tableView && (
+        <BoxTable
+          key={shelfId ?? 'all'}
+          boxes={boxes}
+          disabled={disabled}
+          onMove={(id, destination) => place([id], destination)}
+        />
+      )}
+      <Modal
+        title="Add boxes to this shelf"
+        open={adding}
+        okText="Add boxes"
+        confirmLoading={save.isPending}
+        okButtonProps={{ disabled: disabled || !selected.length }}
+        cancelButtonProps={{ disabled: save.isPending }}
+        closable={!save.isPending}
+        mask={{ closable: !save.isPending }}
+        onCancel={() => setAdding(false)}
+        onOk={() => {
+          if (shelfId) place(selected, shelfId, () => setAdding(false));
+        }}
+      >
+        {failure && (
+          <Alert type="error" className="mb-4" title="Shelf placement not saved" description={failure} />
+        )}
+        <p>These boxes will move from their current location. Their contents will not change.</p>
+        <Select
+          aria-label="Boxes to add"
+          className="w-full"
+          mode="multiple"
+          optionFilterProp="label"
+          showSearch
+          value={selected}
+          onChange={setSelected}
+          disabled={disabled}
+          options={allBoxes
+            .filter((box) => box.shelfId !== shelfId)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((box) => ({ value: box.id, label: box.name }))}
+        />
       </Modal>
     </Layout.Content>
-  );
-}
-
-type InShelfGamesTableProps = {
-  games: ShelfEntry[];
-};
-
-function InShelfGamesTable({ games }: InShelfGamesTableProps) {
-  const columns = [
-    {
-      title: 'Cover',
-      dataIndex: 'id',
-      key: 'cover',
-      render: (id: GameId) => <GameCover id={id} name={'idk'} width={30} height={30} />,
-    },
-    {
-      title: 'Title',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string, entry: ShelfEntry) => <Link to={`/shelves/${entry.id}`}>{name}</Link>,
-    },
-    {
-      title: 'Box Size',
-      dataIndex: 'box',
-      key: 'boxSize',
-    },
-  ];
-
-  return <Table rowKey="id" dataSource={games} columns={columns} size="small" scroll={{ x: true }} />;
-}
-
-type AddGameToShelfProps = {
-  boxedGames: Record<ShelfEntryId, ShelfEntry>;
-  updateOnShelf: (action: 'add' | 'remove', id: ShelfEntryId) => void;
-  onShelf: BooleanDictionary;
-  disabled: boolean;
-};
-
-function AddGameToShelf({ boxedGames, updateOnShelf, onShelf, disabled }: AddGameToShelfProps) {
-  const defaultKeys = useMemo(
-    () =>
-      Object.keys(onShelf).reduce((acc: string[], id) => {
-        if (onShelf[id]) {
-          acc.push(id);
-        }
-        return acc;
-      }, []),
-    [onShelf],
-  );
-
-  const sortedBoxedGames = useMemo(() => orderBy(Object.values(boxedGames), ['name']), [boxedGames]);
-
-  const handleChange = (gameKeys: string[]) => {
-    for (const id of new Set([...Object.keys(onShelf), ...gameKeys])) {
-      updateOnShelf(gameKeys.includes(id) ? 'add' : 'remove', id);
-    }
-  };
-
-  return (
-    <Select
-      mode="multiple"
-      allowClear
-      style={{ width: '100%' }}
-      placeholder="Add game to shelf"
-      onChange={handleChange}
-      value={defaultKeys}
-      disabled={disabled}
-      aria-label="Games on shelf"
-      optionFilterProp="label"
-      options={sortedBoxedGames.map((game) => ({
-        value: game.id,
-        label: game.name,
-      }))}
-    />
   );
 }

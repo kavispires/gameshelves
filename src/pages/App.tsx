@@ -11,8 +11,8 @@ import { AuthProvider, useAuthContext } from 'services/AuthProvider';
 import { FindGame } from './FindGame/FindGame';
 import { Friends } from './Friends/Friends';
 import { GameNight } from './GameNight/GameNight';
+import { LibraryDetails } from './LibraryDetails/LibraryDetails';
 import { NotFound } from './NotFound/NotFound';
-import { Shelf } from './Shelves/Shelf';
 import { Shelves } from './Shelves/Shelves';
 import { Sync } from './Sync/Sync';
 
@@ -44,7 +44,9 @@ function AuthenticatedApp() {
               <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="/game-night" element={<GameNight />} />
               <Route path="/shelves" element={<Shelves />} />
-              <Route path="/shelves/:id" element={<Shelf />} />
+              <Route path="/shelves/:shelfId" element={<Shelves />} />
+              <Route path="/boxes/:id" element={<LibraryDetails kind="box" />} />
+              <Route path="/games/:id" element={<LibraryDetails kind="game" />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/settings" element={<Sync />} />
               <Route path="/sync" element={<Navigate to="/settings" replace />} />

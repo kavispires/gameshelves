@@ -19,6 +19,20 @@ describe('independent shelf illustrations', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['ew-cl-0', 'East shelf'],
+    ['ww-cl-0', 'West shelf'],
+    ['tv-cr-1', 'TV shelf'],
+    ['unshelved', 'Unshelved games'],
+  ])('shows only the containing illustration for location %s', (shelfId, label) => {
+    const { container } = render(<ShelvesSVG shelfId={shelfId} active={[shelfId]} />);
+    expect(screen.getAllByRole('img')).toEqual([screen.getByRole('img', { name: label })]);
+    expect(container.querySelector(`[data-active-shelf="${shelfId}"]`)?.closest('svg')).toBe(
+      screen.getByRole('img', { name: label }),
+    );
+    expect(container.querySelector('.shelves-layout')).toHaveAttribute('data-layout', 'single');
+  });
+
   it('owns each hit target exactly once, shares its highlight geometry and handles keyboard selection', () => {
     const onSelect = vi.fn();
     const active = ['ew-cl-0', 'ww-cl-0', 'tv-cl-0', 'unshelved'];

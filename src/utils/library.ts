@@ -274,6 +274,20 @@ export function prepareImport(
   };
 }
 
+export function moveBoxes(library: Library, ids: string[], shelfId: string): LibraryContent {
+  if (!library.revision) throw new Error('Migrate the library in Settings before editing shelves.');
+  if (!Object.hasOwn(SHELVES_IDS, shelfId)) throw new Error('Choose a valid shelf location.');
+  const boxes = { ...library.boxes };
+  for (const id of ids) {
+    if (!Object.hasOwn(boxes, id)) throw new Error(`Unknown box ${id}.`);
+    const box = boxes[id];
+    boxes[id] = { ...box, shelfId, updatedAt: Date.now() };
+  }
+  const next = { games: library.games, boxes };
+  libraryDocuments(next, '00000000-0000-0000-0000-000000000000');
+  return next;
+}
+
 export function updateBox(
   library: Library,
   id: string,

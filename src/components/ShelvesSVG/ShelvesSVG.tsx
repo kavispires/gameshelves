@@ -17,6 +17,7 @@ type ShelvesSVGProps = {
   perShelf?: Record<ShelfId, ShelfEntry[]>;
   className?: string;
   onSelectShelf?: (id: ShelfId) => void;
+  shelfId?: ShelfId;
 };
 
 const sections: Record<
@@ -46,7 +47,13 @@ const sections: Record<
 const desktopOrder: ShelfSectionId[] = ['east', 'tv', 'west', 'unshelved'];
 const stackedOrder: ShelfSectionId[] = ['east', 'west', 'tv', 'unshelved'];
 
-export function ShelvesSVG({ active = [], perShelf = {}, className, onSelectShelf }: ShelvesSVGProps) {
+export function ShelvesSVG({
+  active = [],
+  perShelf = {},
+  className,
+  onSelectShelf,
+  shelfId,
+}: ShelvesSVGProps) {
   const container = useRef<HTMLElement>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -58,8 +65,11 @@ export function ShelvesSVG({ active = [], perShelf = {}, className, onSelectShel
     return () => observer.disconnect();
   }, []);
 
-  const layout = width >= 1200 ? 'wide' : width >= 600 ? 'tablet' : 'phone';
+  const layout = shelfId ? 'single' : width >= 1200 ? 'wide' : width >= 600 ? 'tablet' : 'phone';
   const order = layout === 'wide' ? desktopOrder : stackedOrder;
+  const visibleSections = shelfId
+    ? order.filter((section) => shelfRegions[section].some((region) => region.id === shelfId))
+    : order;
   const unshelvedCount = perShelf.unshelved?.filter((entry) => entry.box !== 'none').length ?? 0;
   return (
     <section
@@ -68,7 +78,7 @@ export function ShelvesSVG({ active = [], perShelf = {}, className, onSelectShel
       className={clsx('shelves-layout', className)}
       data-layout={layout}
     >
-      {order.map((id) => {
+      {visibleSections.map((id) => {
         const section = sections[id];
         const regions = shelfRegions[id];
         return (

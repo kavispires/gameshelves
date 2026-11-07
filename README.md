@@ -14,7 +14,7 @@ global library; signing in does not create a separate collection.
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Find Game**  | Search every imported game, including expansions, promos and games not assigned to a box. Open a result to see its box and shelf location. |
 | **Game Night** | Placeholder for planning a game night and choosing games.                                                                                  |
-| **Shelves**    | View shelf contents and assign boxes to shelves. Game/box details let you manage contents, classification and measurements.                |
+| **Shelves**    | Switch between shelf illustrations and a full box table. Open a shelf to browse its boxes, add boxes or change their locations.            |
 | **Friends**    | Placeholder for friends and their game ratings.                                                                                            |
 | **Settings**   | Upload a complete BGG collection CSV, review changes and confirm the import. Reload saved data to pick up changes from another device.     |
 
@@ -34,6 +34,12 @@ Each game can live in at most one box; boxes cannot contain other boxes.
 New games start **not assigned to a box**. From a game's details you can create its original box
 or assign it to an existing box. Removing a box assignment does not delete the game.
 You can change a game's classification, for example to promo, independently of BGG's category.
+Game details use a compact layout and show only the shelf containing that game, with its
+compartment highlighted. Boxes without a shelf assignment show the unshelved pile instead.
+
+Games and expansions have their own `/games/:gameId` pages; physical boxes live at
+`/boxes/:boxId`, including standalone containers. Links from the old detail URLs redirect
+to the corresponding game or box.
 
 Dimensions are optional for now. Enter all three positive measurements of the closed box:
 width, height and depth. Shelving does not yet require dimensions or calculate whether a box fits.
@@ -41,7 +47,13 @@ A box marked `unshelved` exists but has no assigned shelf.
 
 The shelf illustrations adapt to your screen: separate East, West, TV and unshelved sections
 sit side by side on wide screens, use two columns on tablets and stack on phones.
-Select a compartment in **Shelves**, or use its location picker on smaller screens, to place boxes.
+Select a compartment in **Shelves**, or use its location picker on smaller screens, to open
+that location's `/shelves/:shelfId` page. **Add boxes** moves existing boxes into that shelf.
+Switch the overview to **Table** to browse every physical box, including unshelved containers.
+Both tables let you search box/game names, filter by shelf or size, paginate and sort every
+data column: box, shelf, size, width, height, depth, game count and contents.
+Location dropdowns save moves immediately. **Remove from shelf** asks for confirmation and
+moves the box to unshelved; it never deletes the box or its contents.
 The TV cabinet has four game compartments; its two open equipment cubbies are not game locations.
 The unshelved pile counts physical boxes, not every expansion or promo inside them.
 
@@ -68,6 +80,9 @@ the preview warns you. Removing an expansion does not remove its containing box.
 
 CSV exports contain an image identifier, **not cover URLs**. Existing covers are preserved; games
 without known URLs show a placeholder. Automatic image fetching and XML enrichment are not included.
+To add or replace a cover, open the game's details, use **View on BoardGameGeek**, open an image
+and copy its image address into **Image URL**. Save the box, or choose **Save game details** if the
+game has no box of its own. The saved URL is used for both the cover and thumbnail.
 
 Changing the local `collection.csv` file alone does not change the app.
 
