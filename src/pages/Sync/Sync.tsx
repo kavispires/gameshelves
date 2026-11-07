@@ -25,7 +25,8 @@ export function Sync() {
 
   return (
     <Layout.Content className="p-4">
-      <Typography.Title level={1}>Sync BGG</Typography.Title>
+      <Typography.Title level={1}>Settings</Typography.Title>
+      <Typography.Title level={2}>Sync BGG</Typography.Title>
       <Divider />
       <Row className="m-4">
         <Steps

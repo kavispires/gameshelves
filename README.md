@@ -126,21 +126,21 @@ part_id are numbers always starting coming from 0
 
 ## Routes
 
-### /
+All routes use hash URLs under `/gameshelves/` and require authentication.
 
-- Search bar that autocompletes game names (search-query field) in /general/shelves
-- On search, goes to page results
+| Route          | Menu entry | Content                                                     |
+| -------------- | ---------- | ----------------------------------------------------------- |
+| `/`            | Find Game  | Home page with the existing game search and shelf overview. |
+| `/game-night`  | Game Night | Placeholder for game-night planning and suggestions.        |
+| `/shelves`     | Shelves    | Existing shelf overview and game-placement controls.        |
+| `/shelves/:id` | Shelves    | Existing game/box details and shelf location.               |
+| `/friends`     | Friends    | Placeholder for friends and their game ratings.             |
+| `/settings`    | Settings   | Existing BGG collection sync workflow.                      |
 
-### /search
+Legacy `/home` and `/login` URLs redirect authenticated visitors to `/`.
+Legacy `/sync` URLs redirect to `/settings`.
 
-- Displays shelf and position of searched game, search bar is still available at the top
-- If the game is unshelved, show button to shelve it (UI display image and click on the shelf part)
-
-### /shelves
-
-- Display shelves and option to select and see what games are stored there
-
-### /sync
+### Collection sync in Settings
 
 When wanting to update the game collection, a sync is necessary. It uses the CSV data and the XML data from BGG.
 After both are parsed, it verifies what entries are new by checking against all-games (auto-generated from .contains)

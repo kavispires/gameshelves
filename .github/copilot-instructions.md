@@ -33,6 +33,8 @@ Use Yarn Classic and the existing lockfile.
   and CSS layer ordering; Tailwind Preflight is intentionally omitted to avoid reset conflicts.
 - Use contextual Ant Design feedback through `App.useApp()` when needed.
 - Keep user-facing text in English and match existing terminology.
+- Make every UI work on desktop, tablet, and mobile. Verify representative viewport sizes;
+  adapt navigation and layouts so controls remain usable without horizontal page overflow.
 - Give controls accessible names, use semantic HTML and explicit button types, and preserve
   keyboard interaction for clickable shelf SVG paths.
 - Preserve hash routing and the `/gameshelves/` deployment base. Keep production output in `build/`.

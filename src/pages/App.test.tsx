@@ -61,14 +61,79 @@ async function navigate(path: string) {
 }
 
 describe('modernized routes and Ant Design controls', () => {
-  it('renders home/search and navigates to the selected game', async () => {
+  it('renders Find Game as home and keeps Shelves selected when viewing a game', async () => {
     await navigate('/');
+    expect(await screen.findByRole('heading', { name: 'Find Game' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Find Game' })).toHaveAttribute('aria-current', 'page');
     const search = await screen.findByRole('combobox');
     fireEvent.change(search, { target: { value: 'Test' } });
     fireEvent.mouseDown(search);
     fireEvent.click(await screen.findByText('Test Game [base] :: BOX'));
     expect(await screen.findByText('This is a boxed game instance.')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/shelves/1');
+    expect(screen.getByRole('link', { name: 'Shelves' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Find Game' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('navigates through all five menu entries and highlights the current page', async () => {
+    await navigate('/');
+    const navigation = screen.getByRole('navigation', { name: 'Main' });
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim()),
+    ).toEqual(['Find Game', 'Game Night', 'Shelves', 'Friends', 'Settings']);
+
+    for (const [label, path] of [
+      ['Game Night', '/game-night'],
+      ['Shelves', '/shelves'],
+      ['Friends', '/friends'],
+      ['Settings', '/settings'],
+      ['Find Game', '/'],
+    ]) {
+      const link = within(navigation).getByRole('link', { name: label });
+      fireEvent.click(link);
+      expect(await screen.findByRole('heading', { name: label })).toBeInTheDocument();
+      expect(window.location.hash).toBe(`#${path}`);
+      expect(link).toHaveAttribute('aria-current', 'page');
+      expect(
+        within(navigation)
+          .getAllByRole('link')
+          .filter((item) => item.hasAttribute('aria-current')),
+      ).toHaveLength(1);
+    }
+  });
+
+  it.each([
+    ['/game-night', 'Game Night', 'Game night planning and game suggestions are coming soon.'],
+    ['/friends', 'Friends', 'Friends and their game ratings are coming soon.'],
+  ])('opens placeholder %s directly', async (path, title, description) => {
+    await navigate(path);
+    expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
+    expect(screen.getByText(description)).toBeInTheDocument();
+  });
+
+  it('opens compact navigation and closes it after choosing a route', async () => {
+    await navigate('/');
+    const trigger = screen.getByRole('button', { name: 'Open navigation' });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const menu = await screen.findByRole('menu');
+    fireEvent.click(within(menu).getByRole('link', { name: 'Friends' }));
+    expect(await screen.findByRole('heading', { name: 'Friends' })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/friends');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  it.each([
+    ['/home', '/', 'Find Game'],
+    ['/sync', '/settings', 'Settings'],
+  ])('redirects legacy route %s to %s', async (path, destination, title) => {
+    await navigate(path);
+    expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#${destination}`);
+    expect(screen.getByRole('link', { name: title })).toHaveAttribute('aria-current', 'page');
   });
 
   it('opens the shelf modal from mouse and keyboard interactions', async () => {
@@ -109,7 +174,7 @@ describe('modernized routes and Ant Design controls', () => {
   });
 
   it('completes CSV/XML import, classification, failed save and retry with mocked Firebase', async () => {
-    await navigate('/sync');
+    await navigate('/settings');
     fireEvent.change(await screen.findByPlaceholderText('Paste JSON for BGG Collection'), {
       target: { value: JSON.stringify([csvRow]) },
     });
@@ -136,24 +201,32 @@ describe('modernized routes and Ant Design controls', () => {
 });
 
 describe('authentication gate', () => {
-  it.each(['/', '/home', '/login', '/shelves', '/shelves/1', '/sync', '/not-a-route'])(
-    'does not mount navigation or read Firestore before authentication at %s',
-    async (path) => {
-      initialUser = undefined;
-      await navigate(path);
-      expect(screen.getByRole('status', { name: 'Verifying auth...' })).toBeInTheDocument();
-      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-      expect(service.getShelvedGames).not.toHaveBeenCalled();
-      expect(service.getImages).not.toHaveBeenCalled();
+  it.each([
+    '/',
+    '/home',
+    '/login',
+    '/game-night',
+    '/shelves',
+    '/shelves/1',
+    '/friends',
+    '/settings',
+    '/sync',
+    '/not-a-route',
+  ])('does not mount navigation or read Firestore before authentication at %s', async (path) => {
+    initialUser = undefined;
+    await navigate(path);
+    expect(screen.getByRole('status', { name: 'Verifying auth...' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(service.getShelvedGames).not.toHaveBeenCalled();
+    expect(service.getImages).not.toHaveBeenCalled();
 
-      act(() => updateAuth(null));
-      expect(screen.getByText('You are not logged in')).toBeInTheDocument();
-      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-      expect(service.getShelvedGames).not.toHaveBeenCalled();
-      expect(service.getImages).not.toHaveBeenCalled();
-      expect(window.location.hash).toBe(`#${path}`);
-    },
-  );
+    act(() => updateAuth(null));
+    expect(screen.getByText('You are not logged in')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(service.getShelvedGames).not.toHaveBeenCalled();
+    expect(service.getImages).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe(`#${path}`);
+  });
 
   it('validates credentials, reports failure and resumes the original URL after observed sign-in', async () => {
     initialUser = null;

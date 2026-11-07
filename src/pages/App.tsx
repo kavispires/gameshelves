@@ -8,7 +8,9 @@ import { Header } from 'components/Header/Header';
 import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuthContext } from 'services/AuthProvider';
-import { Home } from './Home/Home';
+import { FindGame } from './FindGame/FindGame';
+import { Friends } from './Friends/Friends';
+import { GameNight } from './GameNight/GameNight';
 import { NotFound } from './NotFound/NotFound';
 import { Shelf } from './Shelves/Shelf';
 import { Shelves } from './Shelves/Shelves';
@@ -37,12 +39,15 @@ function AuthenticatedApp() {
           <Header />
           <DataQueryWrapper>
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/home" element={<Home />} />
+              <Route path="/" element={<FindGame />} />
+              <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/game-night" element={<GameNight />} />
               <Route path="/shelves" element={<Shelves />} />
               <Route path="/shelves/:id" element={<Shelf />} />
-              <Route path="/sync" element={<Sync />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/settings" element={<Sync />} />
+              <Route path="/sync" element={<Navigate to="/settings" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </DataQueryWrapper>
