@@ -592,6 +592,26 @@ export const SHELVES_IDS: ShelvesIds = {
       depth: 0,
     },
   },
+  'tv-cl-0': {
+    id: 'tv-cl-0',
+    description: 'TV Shelf Upper Left',
+    dimensions: { width: 600, height: 180, depth: 320 },
+  },
+  'tv-cl-1': {
+    id: 'tv-cl-1',
+    description: 'TV Shelf Lower Left',
+    dimensions: { width: 600, height: 310, depth: 320 },
+  },
+  'tv-cr-0': {
+    id: 'tv-cr-0',
+    description: 'TV Shelf Upper Right',
+    dimensions: { width: 600, height: 180, depth: 320 },
+  },
+  'tv-cr-1': {
+    id: 'tv-cr-1',
+    description: 'TV Shelf Lower Right',
+    dimensions: { width: 600, height: 310, depth: 320 },
+  },
   unshelved: {
     id: 'unshelved',
     description: 'Yet to be shelved',

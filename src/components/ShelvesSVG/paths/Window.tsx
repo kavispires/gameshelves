@@ -8,7 +8,7 @@ export function Window() {
         d="M380.76 86.62h91.34v137.2h-91.34z"
       ></path>
       <path
-        fill="#264653"
+        fill="#cde5ee"
         stroke="#787878"
         strokeLinecap="square"
         strokeLinejoin="bevel"
@@ -30,7 +30,7 @@ export function Window() {
         d="M471.52 86.62h91.34v137.2h-91.34z"
       ></path>
       <path
-        fill="#264653"
+        fill="#cde5ee"
         stroke="#787878"
         strokeLinecap="square"
         strokeLinejoin="bevel"
@@ -52,7 +52,7 @@ export function Window() {
         d="M562.97 86.62h91.34v137.2h-91.34z"
       ></path>
       <path
-        fill="#264653"
+        fill="#cde5ee"
         stroke="#787878"
         strokeLinecap="square"
         strokeLinejoin="bevel"

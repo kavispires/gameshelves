@@ -39,6 +39,12 @@ Dimensions are optional for now. Enter all three positive measurements of the cl
 width, height and depth. Shelving does not yet require dimensions or calculate whether a box fits.
 A box marked `unshelved` exists but has no assigned shelf.
 
+The shelf illustrations adapt to your screen: separate East, West, TV and unshelved sections
+sit side by side on wide screens, use two columns on tablets and stack on phones.
+Select a compartment in **Shelves**, or use its location picker on smaller screens, to place boxes.
+The TV cabinet has four game compartments; its two open equipment cubbies are not game locations.
+The unshelved pile counts physical boxes, not every expansion or promo inside them.
+
 ## Importing from BGG
 
 Import is **manual and one-way**. It does not update BGG or run automatically.

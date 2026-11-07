@@ -1,6 +1,7 @@
 import { Alert, Button, Form, InputNumber, Layout, Popconfirm, Select, Typography } from 'antd';
 import { GameCover, ShelvesSVG } from 'components';
-import { useLibrary, useSaveLibrary } from 'hooks/useLibrary';
+import { useSaveLibrary } from 'hooks/useLibrary';
+import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BOX_SIZES, GAME_TYPES, SHELVES_IDS } from 'utils/constants';
@@ -10,7 +11,7 @@ import { NotFound } from '../NotFound/NotFound';
 
 export function Shelf() {
   const { id = '' } = useParams();
-  const { data: library } = useLibrary();
+  const { data: library, perShelf } = useQueryShelvedGames();
   if (!library) return null;
   if (library.legacy) {
     const entry = Object.values(library.legacy.shelves).find((box) =>
@@ -23,25 +24,27 @@ export function Shelf() {
         <Typography.Title level={1}>{game.name}</Typography.Title>
         <p>Current location: {SHELVES_IDS[entry.shelfId]?.description ?? entry.shelfId}</p>
         <p>Box: {entry.name}</p>
-        <ShelvesSVG active={[entry.shelfId]} />
+        <ShelvesSVG active={[entry.shelfId]} perShelf={perShelf} />
       </Layout.Content>
     );
   }
   const box = library.boxes[id];
   if (box?.mainGameId === null) {
-    return <GameDetails key={`${id}:${library.revision}`} library={library} customBox={box} />;
+    return (
+      <GameDetails key={`${id}:${library.revision}`} library={library} customBox={box} perShelf={perShelf} />
+    );
   }
   const game = library.games[id];
   if (!game) return <NotFound />;
-  return <GameDetails key={`${id}:${library.revision}`} library={library} game={game} />;
+  return <GameDetails key={`${id}:${library.revision}`} library={library} game={game} perShelf={perShelf} />;
 }
 
-type GameDetailsProps = { library: Library } & (
+type GameDetailsProps = { library: Library; perShelf: Record<ShelfId, ShelfEntry[]> } & (
   | { game: CatalogGame; customBox?: never }
   | { game?: never; customBox: GameBox }
 );
 
-function GameDetails({ library, game, customBox }: GameDetailsProps) {
+function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
   const containing = customBox ?? (game ? findBox(library.boxes, game.id) : undefined);
   const ownBox = customBox ?? (containing?.id === game?.id ? containing : undefined);
   const name = game ? game.name : getBoxName(customBox, library.games);
@@ -323,7 +326,7 @@ function GameDetails({ library, game, customBox }: GameDetailsProps) {
           Remove from box
         </Button>
       )}
-      {containing && <ShelvesSVG active={[containing.shelfId]} />}
+      {containing && <ShelvesSVG active={[containing.shelfId]} perShelf={perShelf} />}
     </Layout.Content>
   );
 }

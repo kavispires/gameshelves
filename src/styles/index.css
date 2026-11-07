@@ -32,9 +32,46 @@ ul {
   margin: 0;
 }
 
-/* Preserve the shelf drawing's path animations and SVG-specific hit-area styling. */
-.shelves-svg path {
-  transition: d 1s;
+.shelves-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  gap: 2rem;
+  margin: 1.5rem auto;
+  width: 100%;
+  max-width: 1440px;
+}
+
+.shelves-layout[data-layout="tablet"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shelves-layout[data-layout="wide"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.15fr) minmax(90px, 0.45fr);
+}
+
+.shelf-section {
+  margin: 0;
+  min-width: 0;
+}
+
+.shelves-svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: auto;
+}
+
+.shelf-section[data-shelf-section="east"] .shelves-svg {
+  max-width: 310px;
+}
+
+.shelf-section[data-shelf-section="unshelved"] .shelves-svg {
+  max-width: 140px;
+}
+
+.shelves-layout[data-layout="wide"] .shelf-location-picker {
+  display: none;
 }
 
 .clickable-path {
@@ -42,9 +79,18 @@ ul {
   fill-opacity: 0.1;
   stroke-width: 3.672px;
   stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
   cursor: pointer;
 }
 
-.clickable-path:hover {
+.clickable-path:hover,
+.clickable-path:focus-visible {
   stroke: var(--color-info);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shelves-svg path {
+    transition: fill 150ms;
+  }
 }

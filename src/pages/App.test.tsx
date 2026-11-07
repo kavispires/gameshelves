@@ -152,6 +152,33 @@ describe('modernized routes and Ant Design controls', () => {
     );
   });
 
+  it('assigns a box to a TV compartment and shows the cached location without rereading the library', async () => {
+    await navigate('/shelves');
+    fireEvent.click(await screen.findByRole('button', { name: 'Select shelf tv-cl-0' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Games on shelf' }));
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Games on shelf' }), {
+      target: { value: 'Test' },
+    });
+    fireEvent.click(await screen.findByText('Test Game'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Shelf' }));
+    await waitFor(() =>
+      expect(service.saveLibrary).toHaveBeenCalledWith(library, {
+        games: library.games,
+        boxes: { '1': { ...library.boxes['1'], shelfId: 'tv-cl-0' } },
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
+    const search = await screen.findByRole('combobox', { name: 'Find a game' });
+    fireEvent.change(search, { target: { value: 'Test' } });
+    fireEvent.mouseDown(search);
+    fireEvent.click(await screen.findByText('Test Game [base]'));
+    expect(await screen.findByText('Current location: TV Shelf Upper Left')).toBeInTheDocument();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(library.boxes['1'].shelfId).toBe('ew-cl-0');
+  });
+
   it('keeps restored sessions working under Strict Mode', async () => {
     window.location.hash = '/';
     const view = render(

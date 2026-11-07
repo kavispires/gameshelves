@@ -7,7 +7,10 @@ type UnshelvedGamesProps = {
 
 export function UnshelvedGames({ quantity }: UnshelvedGamesProps) {
   return (
-    <g>
+    <g data-content-shelf="unshelved" data-box-count={quantity}>
+      {quantity === 0 && (
+        <path fill="none" stroke="#808080" strokeDasharray="3 2" d="M218.36 322.44h47.41v15.25h-47.41z" />
+      )}
       {quantity > 0 && <path fill="#2a9d8f" d="M218.36 330.07h47.41v7.62h-47.41z"></path>}
       {quantity > 3 && <path fill="#e76f51" d="M220.69 322.44h42.75v7.62h-42.75z"></path>}
       {quantity > 5 && <path fill="#e9c46a" d="M223.64 314.82h42.75v7.62h-42.75z"></path>}

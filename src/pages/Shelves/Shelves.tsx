@@ -180,6 +180,7 @@ function AddGameToShelf({ boxedGames, updateOnShelf, onShelf, disabled }: AddGam
       value={defaultKeys}
       disabled={disabled}
       aria-label="Games on shelf"
+      optionFilterProp="label"
       options={sortedBoxedGames.map((game) => ({
         value: game.id,
         label: game.name,
