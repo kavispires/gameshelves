@@ -11,6 +11,7 @@ type BoxedGameProps = {
 export function BoxedGame({ game }: BoxedGameProps) {
   const {
     updateEntry,
+    addContainedGames,
     isMutated,
     mutatedGame,
     updateEntriesToBeOrphan,
@@ -21,15 +22,15 @@ export function BoxedGame({ game }: BoxedGameProps) {
 
   return (
     <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
-      <div className="game-card-data">
+      <div>
         {saveResult.isError && (
-          <Alert type="error" message="Failed to save" description={JSON.stringify(saveResult.error)} />
+          <Alert type="error" title="Failed to save" description={saveResult.error.message} />
         )}
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} />
         </p>
         <p>This is a boxed game instance.</p>
-        <div className="game-card-data-details">
+        <div className="flex gap-4">
           <BoxSizeSelect value={mutatedGame.box} onChange={(e) => updateEntry('box', e)} />
 
           {/* TODO: Add way to click on shelf and shelve game */}
@@ -40,22 +41,30 @@ export function BoxedGame({ game }: BoxedGameProps) {
           />
         </div>
       </div>
-      <div className="game-card-data">
-        <Collapse defaultActiveKey={['contained-games']}>
-          {/* TODO: Add way to add and remove contained games, except [0] */}
-          <Collapse.Panel key="contained-games" header={`Items in this box (${mutatedGame.contains.length})`}>
-            <ContainedGamesPanelContent
-              games={mutatedGame.contains}
-              containerName={mutatedGame.name}
-              onAddContainedGame={(list: ContainedGameEntry[]) => updateEntry('contains', list)}
-              removeContainedGame={updateEntriesToBeOrphan}
-              updateType={updateContainedGameType}
-            />
-          </Collapse.Panel>
-          <Collapse.Panel key="shelves" header="Game location in shelves">
-            <ShelvesSVG active={[game.shelfId]} />
-          </Collapse.Panel>
-        </Collapse>
+      <div>
+        <Collapse
+          defaultActiveKey={['contained-games']}
+          items={[
+            {
+              key: 'contained-games',
+              label: `Items in this box (${mutatedGame.contains.length})`,
+              children: (
+                <ContainedGamesPanelContent
+                  games={mutatedGame.contains}
+                  containerName={mutatedGame.name}
+                  onAddContainedGame={addContainedGames}
+                  removeContainedGame={updateEntriesToBeOrphan}
+                  updateType={updateContainedGameType}
+                />
+              ),
+            },
+            {
+              key: 'shelves',
+              label: 'Game location in shelves',
+              children: <ShelvesSVG active={[game.shelfId]} />,
+            },
+          ]}
+        />
 
         {/* Related Games */}
       </div>

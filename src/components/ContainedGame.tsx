@@ -6,22 +6,22 @@ import { GameTypeSelect } from './GameTypeSelect';
 type ContainedGameProps = {
   game: ContainedGameEntry;
   index: number;
-  removeContainedGame: GenericFunction;
-  updateType: GenericFunction;
+  removeContainedGame: (game: ContainedGameEntry) => void;
+  updateType: (gameId: GameId, type: GameType) => void;
 };
 
 export function ContainedGame({ game, index, removeContainedGame, updateType }: ContainedGameProps) {
   return (
-    <li key={`contained-${game.id}`} className="contained-game">
-      <GameCover id={game.id} name={game.name} width={80} height={80} className="game-card__image" />
-      <span className="contained-game__name" title={game.name}>
+    <li className="mr-2 mb-2 flex max-w-[120px] flex-col items-center bg-paper p-2 text-center">
+      <GameCover id={game.id} name={game.name} width={80} height={80} />
+      <span className="max-w-[100px] truncate" title={game.name}>
         {game.name}
       </span>
-      <span className="contained-game__type">
+      <span>
         <GameTypeSelect gameId={game.id} value={game.type} onChange={updateType} />
       </span>
       {index > 0 && (
-        <span className="contained-game__remove">
+        <span className="mt-2">
           <Popconfirm
             title="Are you sure you want to orphan this item?"
             onConfirm={() => removeContainedGame(game)}

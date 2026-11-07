@@ -10,7 +10,7 @@ export function OrphanGame({ game }: OrphanGameProps) {
   const { updateEntry, isMutated, mutatedGame, save, saveResult } = useMutateShelfEntry(game);
   return (
     <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
-      <div className="game-card-data">
+      <div>
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} /> This is an orphan instance.
         </p>
@@ -18,7 +18,7 @@ export function OrphanGame({ game }: OrphanGameProps) {
 
         {/* Shelf Id, or Re-shelf or Unshelved */}
       </div>
-      <div className="game-card-data">
+      <div>
         {/* Contained Games */}
         {/* Shelf */}
         {/* Related Games */}

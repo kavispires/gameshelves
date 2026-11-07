@@ -3,89 +3,64 @@
   "homepage": "http://www.kavispires.com/gameshelves/",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@ant-design/icons": "^4.7.0",
-    "@react-query-firebase/auth": "^1.0.0-dev.1",
-    "@react-query-firebase/firestore": "^1.0.0-dev.6",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.3.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/lodash": "^4.14.182",
-    "@types/node": "^16.11.42",
-    "@types/react": "^18.0.14",
-    "@types/react-dom": "^18.0.5",
-    "@types/react-router-dom": "^5.3.3",
-    "antd": "^4.21.4",
-    "clsx": "^1.2.1",
-    "firebase": "^9.8.4",
-    "lodash": "^4.17.21",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-hooks-global-state": "^2.0.0-rc.0",
-    "react-query": "^3.39.1",
-    "react-router-dom": "^6.3.0",
-    "react-scripts": "5.0.1",
-    "react-use": "^17.4.0",
-    "sass": "^1.53.0",
-    "typescript": "^4.7.4",
-    "web-vitals": "^2.1.4"
+  "type": "module",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": "^24.15.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "predeploy": "npm run build",
+    "dev": "vite",
+    "start": "yarn dev",
+    "typecheck": "tsc --noEmit",
+    "build": "yarn typecheck && vite build",
+    "preview": "vite preview",
+    "serve": "yarn preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "biome check .",
+    "lint": "yarn run check",
+    "format": "biome check --write .",
+    "prepare": "husky",
+    "predeploy": "yarn build",
     "deploy": "gh-pages -d build",
-    "format": "prettier --write .",
-    "eject": "react-scripts eject"
+    "clean": "rm -rf node_modules"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "prettier": {
-    "printWidth": 110,
-    "singleQuote": true,
-    "trailingComma": "es5",
-    "bracketSpacing": true,
-    "overrides": [
-      {
-        "files": "/functions/*.js",
-        "options": {
-          "singleQuote": false
-        }
-      }
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
-      "prettier --write"
-    ]
+  "dependencies": {
+    "@ant-design/cssinjs": "^2.1.2",
+    "@ant-design/icons": "^6.3.4",
+    "@tanstack/react-query": "^5.107.1",
+    "antd": "^6.7.0",
+    "clsx": "^2.1.1",
+    "firebase": "^13.2.0",
+    "lodash": "^4.18.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
-    "gh-pages": "^4.0.0",
-    "husky": "^8.0.1",
-    "lint-staged": "^13.0.3",
-    "prettier": "^2.7.1"
+    "@biomejs/biome": "2.6.6",
+    "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/react-query-devtools": "^5.107.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/lodash": "^4.17.27",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "csstype": "^3.2.3",
+    "gh-pages": "^6.3.0",
+    "husky": "^9.1.7",
+    "jsdom": "^31.0.0",
+    "lint-staged": "^17.6.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
+  },
+  "lint-staged": {
+    "*.{js,mjs,ts,tsx,json,jsonc,css,html}": "biome check --write --no-errors-on-unmatched"
   }
 }

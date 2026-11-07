@@ -4,9 +4,9 @@ import { ContainedGame } from './ContainedGame';
 type ContainedGamesPanelContentProps = {
   games: ContainedGameEntry[];
   containerName: string;
-  onAddContainedGame: GenericFunction;
-  removeContainedGame: GenericFunction;
-  updateType: GenericFunction;
+  onAddContainedGame: (games: ContainedGameEntry[]) => void;
+  removeContainedGame: (game: ContainedGameEntry) => void;
+  updateType: (gameId: GameId, type: GameType) => void;
 };
 
 export function ContainedGamesPanelContent({
@@ -17,7 +17,7 @@ export function ContainedGamesPanelContent({
   updateType,
 }: ContainedGamesPanelContentProps) {
   return (
-    <ul className="contained-game-list">
+    <ul className="flex flex-wrap">
       {games.map((game, index) => (
         <ContainedGame
           key={`contained-${game.id}`}
@@ -27,7 +27,7 @@ export function ContainedGamesPanelContent({
           updateType={updateType}
         />
       ))}
-      <li className="contained-game contained-game__add-game">
+      <li className="mr-2 mb-2 flex max-w-[120px] flex-col items-center justify-center bg-paper p-2">
         <AddContainedGameModal name={containerName} onAddContainedGame={onAddContainedGame} />
       </li>
     </ul>

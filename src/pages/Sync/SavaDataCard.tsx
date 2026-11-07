@@ -1,8 +1,7 @@
 import { Alert, Button, Card, Space, Spin } from 'antd';
-import { getGameRef, useBatchMutateGames, useMutateShelvedGames } from 'hooks';
+import { useBatchMutateGames, useMutateShelvedGames } from 'hooks';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { print } from 'utils/helpers';
 import { prepareGamesToBeSaved } from './utils';
 
 type SaveDataCardProps = {
@@ -16,57 +15,42 @@ export function SaveDataCard({ dataToBeAdded, classifications }: SaveDataCardPro
 
   const shelvedGamesMutation = useMutateShelvedGames();
 
-  const { batch, mutation: batchSaveGamesMutation } = useBatchMutateGames();
+  const batchSaveGamesMutation = useBatchMutateGames();
 
   const performSave = () => {
     shelvedGamesMutation.mutate(shelvedGames);
-    games.forEach((game) => {
-      print('Adding to batch', undefined, game.id);
-      batch.set(getGameRef(`${game.id}`), game);
-    });
-    batchSaveGamesMutation.mutate();
+    batchSaveGamesMutation.mutate(games);
   };
 
-  const isLoading = shelvedGamesMutation.isLoading || batchSaveGamesMutation.isLoading;
+  const isLoading = shelvedGamesMutation.isPending || batchSaveGamesMutation.isPending;
   const isSuccess = shelvedGamesMutation.isSuccess && batchSaveGamesMutation.isSuccess;
-  const isError = shelvedGamesMutation.isError && batchSaveGamesMutation.isError;
 
   return (
-    <Card title="Save Data" className="full-width margin-1">
-      {isLoading ? <Spin /> : <></>}
+    <Card title="Save Data" className="w-full m-4">
+      {isLoading && <Spin />}
 
       {shelvedGamesMutation.isError && (
         <Alert
           type="error"
-          message="Failed to save shelved games"
-          description={JSON.stringify(shelvedGamesMutation.error)}
+          title="Failed to save shelved games"
+          description={shelvedGamesMutation.error.message}
         />
       )}
 
       {batchSaveGamesMutation.isError && (
-        <Alert
-          type="error"
-          message="Failed to save games"
-          description={JSON.stringify(batchSaveGamesMutation.error)}
-        />
+        <Alert type="error" title="Failed to save games" description={batchSaveGamesMutation.error.message} />
       )}
 
-      {isSuccess && <Alert type="success" message="New games added successfully" />}
+      {isSuccess && <Alert type="success" title="New games added successfully" />}
 
-      <Space className="full-width flex-center margin-1">
-        <Button
-          type="primary"
-          size="large"
-          onClick={performSave}
-          loading={isLoading}
-          disabled={isSuccess || isError}
-        >
+      <Space className="w-full flex justify-center m-4">
+        <Button type="primary" size="large" onClick={performSave} loading={isLoading} disabled={isSuccess}>
           Save {games.length} games
         </Button>
       </Space>
 
       {isSuccess && (
-        <Space className="full-width flex-center margin-1">
+        <Space className="w-full flex justify-center m-4">
           <Button type="link" onClick={() => navigate('/')}>
             Back to Home page
           </Button>

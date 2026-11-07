@@ -1,21 +1,19 @@
-import { useFirestoreDocument } from '@react-query-firebase/firestore';
-import { doc } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 import { orderBy } from 'lodash';
 import { useCallback, useMemo } from 'react';
-import { firestore } from 'services/firebase';
+import { getShelvedGames } from 'services/firebase';
+import { queryKeys } from './queryKeys';
 
 /**
  * Queries shelved games object
  */
 export function useQueryShelvedGames() {
-  const ref = doc(firestore, 'general', 'shelved-games');
+  const { isSuccess, data, ...rest } = useQuery({
+    queryKey: queryKeys.shelvedGames,
+    queryFn: getShelvedGames,
+  });
 
-  const { isSuccess, data, ...rest } = useFirestoreDocument<Record<string, ShelfEntry>>(
-    ['general', 'shelved-games'],
-    ref
-  );
-
-  const response = useMemo(() => (isSuccess ? data?.data() ?? {} : {}), [isSuccess, data]);
+  const response = useMemo(() => data ?? {}, [data]);
 
   const { searchOptions, perShelf, boxedGames, orphanedGames, unclassifiedGames } = useMemo(() => {
     const searchOptionsResult: SearchOption[] = [];
@@ -23,7 +21,6 @@ export function useQueryShelvedGames() {
     const boxedGamesResult: Record<GameId, ShelfEntry> = {};
     const orphanedGamesResult: Record<GameId, ShelfEntry> = {};
     const unclassifiedGamesResult: Record<GameId, ShelfEntry> = {};
-    console.count('Recalculate');
     orderBy(Object.values(response), ['name']).forEach((entry) => {
       // Handle search options
       // TODO: should show all games, temporarily showing only owned boxes and orphans
@@ -65,7 +62,7 @@ export function useQueryShelvedGames() {
     };
   }, [response]);
 
-  const getShelvedGame = useCallback((id: ShelfEntryId) => response?.[id] ?? {}, [response]);
+  const getShelvedGame = useCallback((id: ShelfEntryId): ShelfEntry | undefined => response[id], [response]);
 
   const isOrphan = useCallback((id: ShelfEntryId) => Boolean(orphanedGames?.[id]), [orphanedGames]);
 
@@ -73,7 +70,7 @@ export function useQueryShelvedGames() {
 
   const isShelved = useCallback(
     (id: ShelfEntryId) => Boolean(response?.[id]?.shelfId !== 'unshelved'),
-    [response]
+    [response],
   );
 
   return {

@@ -7,7 +7,7 @@ import { SEPARATOR } from 'utils/constants';
 
 type AddContainedGameModalProps = {
   name: string;
-  onAddContainedGame: GenericFunction;
+  onAddContainedGame: (games: ContainedGameEntry[]) => void;
 };
 
 export function AddContainedGameModal({ name, onAddContainedGame }: AddContainedGameModalProps) {
@@ -36,7 +36,7 @@ export function AddContainedGameModal({ name, onAddContainedGame }: AddContained
 
   return (
     <>
-      <Button onClick={showModal} className="button-flexible">
+      <Button onClick={showModal} className="h-auto">
         <PlusSquareOutlined />
         <br />
         Add game
@@ -44,32 +44,28 @@ export function AddContainedGameModal({ name, onAddContainedGame }: AddContained
 
       <Modal
         title={`Add an entry contained in the same box as ${name}`}
-        visible={isModalVisible}
+        open={isModalVisible}
         onOk={handleOk}
         okText="Add Games"
         onCancel={handleCancel}
         closable={false}
-        maskClosable={false}
+        mask={{ closable: false }}
       >
         {isLoading && <Spin />}
 
         <Select
           mode="multiple"
           allowClear
-          style={{ width: '100%' }}
+          className="w-full"
           placeholder="Select orphan games"
           onChange={handleChange}
-        >
-          {listOfOrphans.map((orphanGame) => {
-            return (
-              <Select.Option key={orphanGame.id} value={`${orphanGame.id}${SEPARATOR}${orphanGame.name}`}>
-                {orphanGame.name}
-              </Select.Option>
-            );
-          })}
-        </Select>
+          options={listOfOrphans.map((game) => ({
+            value: `${game.id}${SEPARATOR}${game.name}`,
+            label: game.name,
+          }))}
+        />
 
-        <Alert showIcon type="warning" message="Games are only saved upon clicking on OK" />
+        <Alert showIcon type="warning" title="Games are only saved upon clicking on OK" />
       </Modal>
     </>
   );

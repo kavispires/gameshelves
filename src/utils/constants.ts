@@ -9,7 +9,7 @@ export const URLS = {
 
 export const SEPARATOR = '::';
 
-export const GAME_TYPES = [
+export const GAME_TYPES: GameType[] = [
   'base',
   'expansion',
   'mini-expansion',
@@ -20,7 +20,7 @@ export const GAME_TYPES = [
   'unknown',
 ];
 
-export const BOX_SIZES = [
+export const BOX_SIZES: BoxSize[] = [
   'card',
   'x-small',
   'small',

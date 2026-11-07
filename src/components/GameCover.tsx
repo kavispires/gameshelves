@@ -1,4 +1,4 @@
-import { Image, ImageProps } from 'antd';
+import { Image, type ImageProps } from 'antd';
 import { useQueryImages } from 'hooks';
 import { URLS } from 'utils/constants';
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!**/build", "!**/coverage", "!**/public/assets", "!**/src/assets", "!yarn.lock"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 110,
+    "lineEnding": "lf"
+  },
+  "javascript": { "formatter": { "quoteStyle": "single" } },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "overrides": [
+    {
+      "includes": ["src/components/ShelvesSVG/paths/ClickableAreas.tsx"],
+      // HTML buttons cannot replace SVG paths; these paths have keyboard handlers and accessible names.
+      "linter": { "rules": { "a11y": { "useSemanticElements": "off" } } }
+    }
+  ]
+}

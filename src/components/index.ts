@@ -1,5 +1,3 @@
-export * from './Header/Header';
-export * from './ShelvesSVG/ShelvesSVG';
 export * from './BoxSizeSelect';
 export * from './CardItem';
 export * from './ContainedGamesPanelContent';
@@ -8,6 +6,8 @@ export * from './DataQueryWrapper';
 export * from './GameCover';
 export * from './GameTypeSelect';
 export * from './GameTypeTag';
+export * from './Header/Header';
 export * from './LoadingPage';
 export * from './SearchBar';
 export * from './ShelfAction';
+export * from './ShelvesSVG/ShelvesSVG';

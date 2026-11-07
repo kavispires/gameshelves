@@ -1,8 +1,8 @@
-import { useFirestoreDocument } from '@react-query-firebase/firestore';
-import { doc } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { firestore } from 'services/firebase';
+import { getImages as getImagesDocument } from 'services/firebase';
 import { URLS } from 'utils/constants';
+import { queryKeys } from './queryKeys';
 
 const fallback: GameImages = {
   thumbnail: URLS.BGG_NO_IMAGE,
@@ -13,14 +13,12 @@ const fallback: GameImages = {
  * Queries game images
  */
 export function useQueryImages() {
-  const ref = doc(firestore, 'general', 'images');
+  const { isSuccess, data, ...rest } = useQuery({
+    queryKey: queryKeys.images,
+    queryFn: getImagesDocument,
+  });
 
-  const { isSuccess, data, ...rest } = useFirestoreDocument<Record<string, GameImages>>(
-    ['general', 'images'],
-    ref
-  );
-
-  const images = useMemo(() => (isSuccess ? data?.data() ?? {} : {}), [isSuccess, data]);
+  const images = useMemo(() => data ?? {}, [data]);
 
   const getImages = (id: GameId) => images?.[id] ?? fallback;
 

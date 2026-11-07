@@ -1,15 +1,10 @@
-import { useFirestoreDocument } from '@react-query-firebase/firestore';
-import { doc } from 'firebase/firestore';
-import { UseQueryResult } from 'react-query';
-import { firestore } from 'services/firebase';
+import { useQuery } from '@tanstack/react-query';
+import { getGame } from 'services/firebase';
+import { queryKeys } from './queryKeys';
 
-/**
- * Queries single game
- * @param id - the id of the game
- * @returns
- */
-export function useQueryGame(id: GameId): UseQueryResult {
-  const ref = doc(firestore, 'games', id);
-
-  return useFirestoreDocument(['games', id], ref);
+export function useQueryGame(id: GameId) {
+  return useQuery({
+    queryKey: queryKeys.game(id),
+    queryFn: () => getGame(id),
+  });
 }

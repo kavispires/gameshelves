@@ -1,0 +1,50 @@
+@layer theme, base, antd, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --color-primary: #264653;
+  --color-ink: #14242a;
+  --color-paper: #f5f5f5;
+  --color-muted: #808080;
+  --color-error: #e76f51;
+  --color-warning: #f4a261;
+  --color-success: #8ab17d;
+  --color-info: #2a9d8f;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Preserve the shelf drawing's path animations and SVG-specific hit-area styling. */
+.shelves-svg path {
+  transition: d 1s;
+}
+
+.clickable-path {
+  fill: var(--color-info);
+  fill-opacity: 0.1;
+  stroke-width: 3.672px;
+  stroke-linejoin: round;
+  cursor: pointer;
+}
+
+.clickable-path:hover {
+  stroke: var(--color-info);
+}

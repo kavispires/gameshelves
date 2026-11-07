@@ -1,36 +1,39 @@
-import { Button, Card, Divider, Input, notification, Typography } from 'antd';
+import { App, Button, Card, Divider, Input, Typography } from 'antd';
+import type { ChangeEvent } from 'react';
 import { URLS } from 'utils/constants';
+import { parseXmlJson } from './importData';
 
 const { Paragraph, Link } = Typography;
 const { TextArea } = Input;
 
 interface XmlCardProps {
-  xmlContent: UnknownDictionary[];
-  setXmlContent: Function;
-  goToNextStep: GenericFunction;
+  xmlContent: XMLData[];
+  setXmlContent: (entries: XMLData[]) => void;
+  goToNextStep: () => void;
 }
 
 export function XmlCard({ xmlContent, setXmlContent, goToNextStep }: XmlCardProps) {
-  const parseJson = (e: any) => {
+  const { notification } = App.useApp();
+  const parseJson = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value: string = e.target.value;
 
     try {
-      const result = JSON.parse(value);
-      setXmlContent(result?.item ?? []);
+      setXmlContent(parseXmlJson(value));
     } catch (error) {
+      setXmlContent([]);
       notification.error({
-        message: 'Failed to parse SVG JSON',
-        description: JSON.stringify(error),
+        title: 'Failed to parse XML JSON',
+        description: error instanceof Error ? error.message : String(error),
         placement: 'bottomLeft',
       });
     }
   };
 
   return (
-    <Card title="BGG User XML" className="full-width margin-1">
+    <Card title="BGG User XML" className="w-full m-4">
       <Paragraph>
         Visit the user xml collection in{' '}
-        <Link href={`${URLS.BGG_XML_API_COLLECTION}/${process.env.REACT_APP_BGG_USERNAME}`} target="_blank">
+        <Link href={`${URLS.BGG_XML_API_COLLECTION}/${import.meta.env.VITE_BGG_USERNAME}`} target="_blank">
           BGG
         </Link>
         . (The collection will take a few seconds/minutes to be retrieved)

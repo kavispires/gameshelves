@@ -1,23 +1,11 @@
-import { useFirestoreDocumentMutation } from '@react-query-firebase/firestore';
-import { doc } from 'firebase/firestore';
-import { queryClient } from 'pages/App';
-import { firestore } from 'services/firebase';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { saveImages } from 'services/firebase';
+import { queryKeys } from './queryKeys';
 
-/**
- * Saves/updates shelved games object
- */
 export function useMutateImages() {
-  const ref = doc(firestore, 'general', 'images');
-
-  return useFirestoreDocumentMutation<Record<string, GameImages>>(
-    ref,
-    {
-      merge: true,
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('images');
-      },
-    }
-  );
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: saveImages,
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.images }),
+  });
 }

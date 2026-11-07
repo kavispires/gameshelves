@@ -11,7 +11,7 @@ export function UnclassifiedGame({ game }: UnclassifiedGameProps) {
 
   return (
     <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
-      <div className="game-card-data">
+      <div>
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} /> This is an unclassified game instance. Edit
           box size to convert this into a boxed game or an orphan.
@@ -19,7 +19,7 @@ export function UnclassifiedGame({ game }: UnclassifiedGameProps) {
         <BoxSizeSelect value={mutatedGame.box} onChange={(e) => updateEntry('box', e)} />
         {/* Shelf Id, or Re-shelf or Unshelved */}
       </div>
-      <div className="game-card-data">
+      <div>
         {/* Contained Games */}
         {/* Shelf */}
         {/* Related Games */}

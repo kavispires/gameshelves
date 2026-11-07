@@ -4,7 +4,6 @@ import { orderBy } from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 
 import {
-  checkKeyValues,
   getShelvedGamesIdDictionary,
   mergeCollections,
   prepareRawGameShelfEntry,
@@ -15,12 +14,12 @@ import {
 const { Paragraph } = Typography;
 
 type MergeCardProps = {
-  csvContent: UnknownDictionary[];
-  xmlContent: UnknownDictionary[];
-  goToNextStep: GenericFunction;
-  ingestedData: MergedCollectionEntry[];
-  setIngestedData: GenericFunction;
-  setDataToBeAdded: GenericFunction;
+  csvContent: BGGCollection[];
+  xmlContent: XMLData[];
+  goToNextStep: () => void;
+  ingestedData: GameEntry[];
+  setIngestedData: (entries: GameEntry[]) => void;
+  setDataToBeAdded: (entries: GameEntry[]) => void;
 };
 
 export function MergeCard({
@@ -42,9 +41,7 @@ export function MergeCard({
 
   const { isLoading, isSuccess, response: shelvedGames, isError, error } = useQueryShelvedGames();
 
-  checkKeyValues(ingestedData);
-
-  const columns = [
+  const columns: import('antd').TableColumnsType<GameEntry> = [
     {
       title: 'Cover',
       dataIndex: 'thumbnail',
@@ -55,7 +52,7 @@ export function MergeCard({
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      sorter: (a: any, b: any) => (a.name < b.name ? -1 : 1),
+      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: 'Year',
@@ -66,7 +63,7 @@ export function MergeCard({
       title: 'Rating',
       dataIndex: 'rating',
       key: 'rating',
-      sorter: (a: any, b: any) => a.rating - b.rating,
+      sorter: (a, b) => (a.rating ?? 0) - (b.rating ?? 0),
     },
     {
       title: 'Type',
@@ -77,11 +74,11 @@ export function MergeCard({
 
   const shelvedGamesIdDictionary = useMemo(
     () => (shelvedGames ? getShelvedGamesIdDictionary(shelvedGames) : {}),
-    [shelvedGames]
+    [shelvedGames],
   );
   const newEntries = useMemo(
-    () => ingestedData.filter((entry) => shelvedGamesIdDictionary![entry.id] === undefined),
-    [ingestedData, shelvedGamesIdDictionary]
+    () => ingestedData.filter((entry) => shelvedGamesIdDictionary[entry.id] === undefined),
+    [ingestedData, shelvedGamesIdDictionary],
   );
 
   const handleSyncNew = useCallback(() => {
@@ -95,34 +92,32 @@ export function MergeCard({
   }, [goToNextStep, ingestedData, setDataToBeAdded]);
 
   return (
-    <Card title="Merge Collections" className="full-width margin-1">
+    <Card title="Merge Collections" className="w-full m-4">
       <Paragraph>Parse, merge, and transform collections into a GameShelf entry</Paragraph>
 
       {isLoading && <Spin />}
 
-      {isError && (
-        <Alert type="error" message="Failed to load shelved games" description={JSON.stringify(error)} />
-      )}
+      {isError && <Alert type="error" title="Failed to load shelved games" description={error?.message} />}
 
       {isSuccess && (
-        <Row gutter={16} className="margin-1">
+        <Row gutter={16} className="m-4">
           <Col span={12}>
             <Statistic title="New Entries" value={Object.keys(newEntries).length ?? 0} />
-            <Button type="primary" onClick={handleSyncNew}>
+            <Button type="primary" onClick={handleSyncNew} disabled={newEntries.length === 0}>
               Add New Only
             </Button>
           </Col>
 
           <Col span={12}>
             <Statistic title="Total Imported Entries" value={ingestedData?.length ?? 0} />
-            <Button type="primary" danger onClick={handleSyncAll}>
+            <Button type="primary" danger onClick={handleSyncAll} disabled={ingestedData.length === 0}>
               Resync All
             </Button>
           </Col>
         </Row>
       )}
 
-      <Table dataSource={newEntries} columns={columns} />
+      <Table rowKey="id" dataSource={newEntries} columns={columns} />
     </Card>
   );
 }

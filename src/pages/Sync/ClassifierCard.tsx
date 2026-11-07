@@ -12,16 +12,17 @@ import {
 } from 'antd';
 import { GameCover } from 'components';
 import { useStep } from 'hooks';
+import type { Dispatch, SetStateAction } from 'react';
 import { BOX_SIZES, GAME_TYPES } from 'utils/constants';
 import { DEFAULT_BOX_DIMENSIONS } from './constants';
 
 const { Paragraph } = Typography;
 
 type ClassifierCardProps = {
-  goToNextStep: GenericFunction;
+  goToNextStep: () => void;
   dataToBeAdded: GameEntry[];
   classifications: Record<GameId, Classification>;
-  setClassifications: GenericFunction;
+  setClassifications: Dispatch<SetStateAction<Record<GameId, Classification>>>;
 };
 
 export function ClassifierCard({
@@ -36,7 +37,7 @@ export function ClassifierCard({
   return (
     <Card
       title={`Classify entries (${currentIndex + 1} out of ${dataToBeAdded.length})`}
-      className="full-width margin-1"
+      className="w-full m-4"
     >
       <Paragraph>Add additional data to all new entries</Paragraph>
 
@@ -58,7 +59,7 @@ export function ClassifierCard({
         />
       }
 
-      <Space className="margin-1 flex-center">
+      <Space className="m-4 flex justify-center">
         <Button disabled={currentIndex === 0} onClick={previousIndex}>
           Previous Game
         </Button>
@@ -76,11 +77,11 @@ export function ClassifierCard({
 type GameClassifierProps = {
   game: GameEntry;
   classifications: Classification;
-  setClassifications: GenericFunction;
+  setClassifications: Dispatch<SetStateAction<Record<GameId, Classification>>>;
 };
 
 function GameClassifier({ game, classifications, setClassifications }: GameClassifierProps) {
-  const updateClassifications = (field: string, value: unknown) => {
+  const updateClassifications = <K extends keyof Classification>(field: K, value: Classification[K]) => {
     setClassifications((state: Record<GameId, Classification>) => {
       const nc = { ...classifications, ...(state[game.id] ?? {}), [field]: value };
       if (field === 'type' && ['promo', 'expansion'].includes(String(value))) {
@@ -112,60 +113,81 @@ function GameClassifier({ game, classifications, setClassifications }: GameClass
   };
 
   return (
-    <Descriptions title={`${game.name} (${game.id})`} bordered size="small" layout="vertical" column={1}>
-      <Descriptions.Item label="Name">
-        <GameCover
-          id={game.id}
-          name={game.name}
-          width={50}
-          height={50}
-          preview={false}
-          className="game-card__image"
-        />
-        <span>{game.name}</span> {game.status === 'PREORDERED' && <Tag color="yellow">Preorder</Tag>}
-      </Descriptions.Item>
-      <Descriptions.Item label="Type">
-        <Segmented
-          options={GAME_TYPES}
-          value={classifications.type}
-          onChange={(e) => updateClassifications('type', e)}
-        />
-      </Descriptions.Item>
-      <Descriptions.Item label="Box Size">
-        <Segmented
-          options={BOX_SIZES}
-          value={classifications.box}
-          onChange={(e) => updateClassifications('box', e)}
-        />
-      </Descriptions.Item>
-      <Descriptions.Item label="Box Dimensions">
-        <Avatar>W</Avatar>{' '}
-        <InputNumber
-          value={classifications.width}
-          onChange={(e) => updateClassifications('width', e)}
-          min={0}
-        />{' '}
-        {/* <br /> */}
-        <Avatar>H</Avatar>{' '}
-        <InputNumber
-          value={classifications.height}
-          onChange={(e) => updateClassifications('height', e)}
-          min={0}
-        />{' '}
-        {/* <br /> */}
-        <Avatar>D</Avatar>{' '}
-        <InputNumber
-          value={classifications.depth}
-          onChange={(e) => updateClassifications('depth', e)}
-          min={0}
-        />{' '}
-        <br />
-        <span>Default Size:</span>{' '}
-        <Segmented
-          options={Object.keys(DEFAULT_BOX_DIMENSIONS)}
-          onChange={(e) => updateDimensions(DEFAULT_BOX_DIMENSIONS[e])}
-        />
-      </Descriptions.Item>
-    </Descriptions>
+    <Descriptions
+      title={`${game.name} (${game.id})`}
+      bordered
+      size="small"
+      layout="vertical"
+      column={1}
+      items={[
+        {
+          key: 'name',
+          label: 'Name',
+          children: (
+            <>
+              <GameCover id={game.id} name={game.name} width={50} height={50} preview={false} />
+              <span>{game.name}</span> {game.status === 'PREORDERED' && <Tag color="yellow">Preorder</Tag>}
+            </>
+          ),
+        },
+        {
+          key: 'type',
+          label: 'Type',
+          children: (
+            <Segmented<GameType>
+              options={GAME_TYPES}
+              value={classifications.type}
+              onChange={(value) => updateClassifications('type', value)}
+            />
+          ),
+        },
+        {
+          key: 'box',
+          label: 'Box Size',
+          children: (
+            <Segmented<BoxSize>
+              options={BOX_SIZES}
+              value={classifications.box}
+              onChange={(value) => updateClassifications('box', value)}
+            />
+          ),
+        },
+        {
+          key: 'dimensions',
+          label: 'Box Dimensions',
+          children: (
+            <>
+              <Avatar>W</Avatar>{' '}
+              <InputNumber
+                aria-label="Box width"
+                value={classifications.width}
+                onChange={(value) => updateClassifications('width', value ?? 0)}
+                min={0}
+              />{' '}
+              <Avatar>H</Avatar>{' '}
+              <InputNumber
+                aria-label="Box height"
+                value={classifications.height}
+                onChange={(value) => updateClassifications('height', value ?? 0)}
+                min={0}
+              />{' '}
+              <Avatar>D</Avatar>{' '}
+              <InputNumber
+                aria-label="Box depth"
+                value={classifications.depth}
+                onChange={(value) => updateClassifications('depth', value ?? 0)}
+                min={0}
+              />{' '}
+              <br />
+              <span>Default Size:</span>{' '}
+              <Segmented
+                options={Object.keys(DEFAULT_BOX_DIMENSIONS)}
+                onChange={(value) => updateDimensions(DEFAULT_BOX_DIMENSIONS[value])}
+              />
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

@@ -1,13 +1,8 @@
 // Object aliases
-type PlainObject = Record<string, any>;
 type BooleanDictionary = Record<string, boolean>;
 type NumberDictionary = Record<string, number>;
 type StringDictionary = Record<string, string>;
-type ObjectDictionary = Record<string, PlainObject>;
 type UnknownDictionary = Record<string, unknown>;
-// Function aliases
-type GenericFunction = (...args: any) => void;
-type BooleanFunction = (...args: any) => boolean;
 
 type GameId = string;
 type ShelfId = string;

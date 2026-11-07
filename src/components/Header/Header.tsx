@@ -4,10 +4,10 @@ import { Menu } from './Menu';
 
 export function Header() {
   return (
-    <Layout.Header className="header">
-      <div className="header__logo">
-        <Image src={logo} height={32} preview={false} className="header__logo-icon" />{' '}
-        <h1 className="header__logo-title">Game Shelves</h1>
+    <Layout.Header className="grid grid-cols-2 bg-ink">
+      <div className="inline-flex">
+        <Image src={logo} alt="Game Shelves" height={32} preview={false} className="w-8" />{' '}
+        <h1 className="ml-4 text-white">Game Shelves</h1>
       </div>
 
       <Menu />

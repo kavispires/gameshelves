@@ -1,23 +1,11 @@
-import { useFirestoreDocumentMutation } from '@react-query-firebase/firestore';
-import { doc } from 'firebase/firestore';
-import { queryClient } from 'pages/App';
-import { firestore } from 'services/firebase';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { saveShelvedGames } from 'services/firebase';
+import { queryKeys } from './queryKeys';
 
-/**
- * Saves/updates shelved games object
- */
-export function useMutateShelvedGames(reset: boolean = false) {
-  const ref = doc(firestore, 'general', 'shelved-games');
-
-  return useFirestoreDocumentMutation<Record<string, ShelfEntry>>(
-    ref,
-    {
-      merge: !reset,
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('shelved-games');
-      },
-    }
-  );
+export function useMutateShelvedGames(reset = false) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, ShelfEntry>) => saveShelvedGames(data, reset),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.shelvedGames }),
+  });
 }

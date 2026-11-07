@@ -1,36 +1,39 @@
-import { Button, Card, Divider, Input, notification, Typography } from 'antd';
+import { App, Button, Card, Divider, Input, Typography } from 'antd';
+import type { ChangeEvent } from 'react';
 import { URLS } from 'utils/constants';
+import { parseCsvJson } from './importData';
 
 const { Paragraph, Link } = Typography;
 const { TextArea } = Input;
 
 interface CsvCardProps {
-  csvContent: UnknownDictionary[];
-  setCsvContent: Function;
-  goToNextStep: GenericFunction;
+  csvContent: BGGCollection[];
+  setCsvContent: (entries: BGGCollection[]) => void;
+  goToNextStep: () => void;
 }
 
 export function CsvCard({ csvContent, setCsvContent, goToNextStep }: CsvCardProps) {
-  const parseJson = (e: any) => {
+  const { notification } = App.useApp();
+  const parseJson = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value: string = e.target.value;
 
     try {
-      const result = JSON.parse(value);
-      setCsvContent(result);
+      setCsvContent(parseCsvJson(value));
     } catch (error) {
+      setCsvContent([]);
       notification.error({
-        message: 'Failed to parse SVG JSON',
-        description: JSON.stringify(error),
+        title: 'Failed to parse CSV JSON',
+        description: error instanceof Error ? error.message : String(error),
         placement: 'bottomLeft',
       });
     }
   };
 
   return (
-    <Card title="BGG Collection" className="full-width margin-1">
+    <Card title="BGG Collection" className="w-full m-4">
       <Paragraph>
         Download user collection in{' '}
-        <Link href={`${URLS.BGG_COLLECTION}/${process.env.REACT_APP_BGG_USERNAME}`} target="_blank">
+        <Link href={`${URLS.BGG_COLLECTION}/${import.meta.env.VITE_BGG_USERNAME}`} target="_blank">
           BGG
         </Link>
         .

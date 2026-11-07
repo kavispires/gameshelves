@@ -8,12 +8,10 @@ export function Home() {
   const { searchOptions, perShelf } = useQueryShelvedGames();
 
   return (
-    <>
-      <Layout.Content className="content">
-        <SearchBar searchOptions={searchOptions} />
+    <Layout.Content className="p-4">
+      <SearchBar searchOptions={searchOptions} />
 
-        <ShelvesSVG active={Object.keys(SHELVES_IDS)} perShelf={perShelf} />
-      </Layout.Content>
-    </>
+      <ShelvesSVG active={Object.keys(SHELVES_IDS)} perShelf={perShelf} />
+    </Layout.Content>
   );
 }

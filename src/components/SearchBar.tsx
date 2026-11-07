@@ -19,7 +19,7 @@ export function SearchBar({ searchOptions }: SearchBarProps) {
       allowClear
       size="large"
       filterOption={(inputValue, option) =>
-        option!.label.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+        option?.label.toUpperCase().includes(inputValue.toUpperCase()) ?? false
       }
     />
   );

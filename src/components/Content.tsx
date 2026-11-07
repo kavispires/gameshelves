@@ -1,6 +1,6 @@
 import { Layout } from 'antd';
 import clsx from 'clsx';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 type ContentProps = {
   children: ReactNode;
@@ -9,6 +9,8 @@ type ContentProps = {
 
 export function Content({ children, centered = false }: ContentProps) {
   return (
-    <Layout.Content className={clsx('content', centered && 'fully-flex-center')}>{children}</Layout.Content>
+    <Layout.Content className={clsx('p-4', centered && 'flex h-full w-full items-center justify-center')}>
+      {children}
+    </Layout.Content>
   );
 }

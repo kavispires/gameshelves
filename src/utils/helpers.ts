@@ -5,6 +5,6 @@
  * @param value
  * @returns
  */
-export function print(str: string, color: string = '#2a9d8f', value?: any) {
+export function print(str: string, color: string = '#2a9d8f', value?: unknown) {
   return console.log(`%c${str}`, `background-color:${color}`, value ? value : '');
 }

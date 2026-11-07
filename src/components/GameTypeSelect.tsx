@@ -5,7 +5,7 @@ import { CardItem } from './CardItem';
 type GameTypeSelectProps = {
   gameId: GameId;
   value: GameType;
-  onChange?: GenericFunction;
+  onChange?: (gameId: GameId, type: GameType) => void;
   disabled?: boolean;
 };
 
@@ -17,19 +17,14 @@ export function GameTypeSelect({
 }: GameTypeSelectProps) {
   return (
     <CardItem label="Game Type">
-      <Select
+      <Select<GameType>
         value={value}
         style={{ width: 100 }}
-        onSelect={(gameType: string) => onChange(gameId, gameType)}
+        onSelect={(gameType) => onChange(gameId, gameType)}
         size="small"
         disabled={disabled}
-      >
-        {GAME_TYPES.map((gameType) => (
-          <Select.Option key={gameType} value={gameType}>
-            {gameType}
-          </Select.Option>
-        ))}
-      </Select>
+        options={GAME_TYPES.map((type) => ({ value: type, label: type }))}
+      />
     </CardItem>
   );
 }

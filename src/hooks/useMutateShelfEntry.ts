@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual } from 'lodash';
 import { useMemo, useState } from 'react';
-import { UseMutationResult } from 'react-query';
 import { useMutateShelvedGames } from './useMutateShelvedGames';
 import { useQueryShelvedGames } from './useQueryShelvedGames';
 
@@ -12,20 +11,19 @@ export function useMutateShelfEntry(shelfEntry: ShelfEntry) {
 
   const isMutated = useMemo(() => !isEqual(shelfEntry, mutatedGame), [shelfEntry, mutatedGame]);
 
-  function updateEntry(key: keyof ShelfEntry, value: unknown) {
-    if (key === 'contains') {
-      const newList = value as ContainedGameEntry[];
-      const list = [...mutatedGame.contains.slice(1), ...newList];
-      const uniqueList = Object.values(
-        list.reduce((acc: Record<string, ContainedGameEntry>, entry) => {
-          acc[entry.id] = entry;
-          return acc;
-        }, {})
-      );
-      setMutation((s) => ({ ...s, [key]: [s.contains[0], ...uniqueList] }));
-    } else {
-      setMutation((s) => ({ ...s, [key]: value }));
-    }
+  function updateEntry<K extends Exclude<keyof ShelfEntry, 'contains'>>(key: K, value: ShelfEntry[K]) {
+    setMutation((s) => ({ ...s, [key]: value }));
+  }
+
+  function addContainedGames(newList: ContainedGameEntry[]) {
+    const list = [...mutatedGame.contains.slice(1), ...newList];
+    const uniqueList = Object.values(
+      list.reduce((acc: Record<string, ContainedGameEntry>, entry) => {
+        acc[entry.id] = entry;
+        return acc;
+      }, {}),
+    );
+    setMutation((s) => ({ ...s, contains: [s.contains[0], ...uniqueList] }));
   }
 
   function updateEntriesToBeOrphan(item: ContainedGameEntry) {
@@ -86,10 +84,11 @@ export function useMutateShelfEntry(shelfEntry: ShelfEntry) {
   return {
     mutatedGame,
     updateEntry,
+    addContainedGames,
     save,
     isMutated,
     updateEntriesToBeOrphan,
     updateContainedGameType,
-    saveResult: mutateShelvedGames as UseMutationResult,
+    saveResult: mutateShelvedGames,
   };
 }

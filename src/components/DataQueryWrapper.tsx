@@ -1,6 +1,6 @@
 import { Button, Result } from 'antd';
 import { useQueryImages, useQueryShelvedGames } from 'hooks';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoadingPage } from './LoadingPage';
 
@@ -22,7 +22,7 @@ export function DataQueryWrapper({ children }: DataQueryWrapperProps) {
       <Result
         status="500"
         title="500"
-        subTitle={JSON.stringify(shelvedGamesQuery.error)}
+        subTitle={shelvedGamesQuery.error?.message}
         extra={
           <Button type="primary" onClick={() => navigate('/')}>
             Back Home
@@ -37,7 +37,7 @@ export function DataQueryWrapper({ children }: DataQueryWrapperProps) {
       <Result
         status="500"
         title="500"
-        subTitle={JSON.stringify(imagesQuery.error)}
+        subTitle={imagesQuery.error?.message}
         extra={
           <Button type="primary" onClick={() => navigate('/')}>
             Back Home

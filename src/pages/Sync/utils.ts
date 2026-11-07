@@ -1,41 +1,17 @@
-import { csvKeyPairs } from './constants';
-
 type TransformedCSV = Record<GameId, BGGCollection>;
 
-export function transformCSV(list: Record<GameId, unknown>[]): TransformedCSV {
+export function transformCSV(list: BGGCollection[]): TransformedCSV {
   return list.reduce((acc: TransformedCSV, entry) => {
-    if (entry.own || entry.preordered) {
-      const newEntry = extractValuesFromCSV(entry);
-      acc[newEntry.id] = newEntry;
-    }
+    acc[entry.id] = entry;
     return acc;
   }, {});
 }
 
-function extractValuesFromCSV(entry: Record<GameId, unknown>): BGGCollection {
-  const result: any = {};
-  Object.keys(csvKeyPairs).forEach((key) => {
-    const newKey = csvKeyPairs[key];
-    const value = entry[key];
-    result[newKey] = value;
-  });
-
-  result.status = entry.own ? 'OWN' : 'PREORDERED';
-
-  return result;
-}
-
 type TransformedXML = Record<GameId, XMLData>;
 
-export function transformXML(list: Record<GameId, unknown>[]): TransformedXML {
+export function transformXML(list: XMLData[]): TransformedXML {
   return list.reduce((acc: TransformedXML, entry) => {
-    const id = entry['@objectid'] as string;
-    acc[id] = {
-      id,
-      image: entry.image as string,
-      thumbnail: entry.thumbnail as string,
-      type: entry['@subtype'] as string,
-    };
+    acc[entry.id] = entry;
     return acc;
   }, {});
 }
@@ -49,46 +25,11 @@ export function mergeCollections(csv: TransformedCSV, xml: TransformedXML): Merg
   });
 }
 
-export function checkKeyValues(list: PlainObject[]) {
-  const tracker: PlainObject = {
-    bestWith: {},
-    languageDependence: {},
-    recommendedAge: {},
-    recommendedPlayerCount: {},
-    type: {},
-    status: {},
-  };
-  const canBeZero: BooleanDictionary = {};
-  const canBeEmpty: BooleanDictionary = {};
-
-  list.forEach((entry) => {
-    Object.keys(entry).forEach((key: string) => {
-      const value = entry[key];
-      if (key in tracker) {
-        if (tracker[key][value] === undefined) {
-          tracker[key][value] = 0;
-        }
-        tracker[key][value] += 1;
-      } else if (value === 0) {
-        canBeZero[key] = true;
-      }
-
-      if (value === '') {
-        canBeEmpty[key] = true;
-      }
-    });
-  });
-
-  console.log({ tracker });
-  console.log({ canBeZero: Object.keys(canBeZero) });
-  console.log({ canBeEmpty: Object.keys(canBeEmpty) });
-}
-
 export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEntry[] {
-  const result: unknown[] = [];
+  const result: GameEntry[] = [];
 
   list.forEach((entry) => {
-    const newEntry: PlainObject = {
+    const newEntry: GameEntry = {
       id: entry.id,
       name: entry.name,
       originalName: entry.originalName,
@@ -124,9 +65,7 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
     result.push(newEntry);
   });
 
-  const response = result as GameEntry[];
-
-  return response;
+  return result;
 }
 
 function getStatus(status: string): GameStatus {
