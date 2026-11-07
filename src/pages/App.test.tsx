@@ -1,10 +1,15 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ConfigProvider } from 'antd';
+import type { User } from 'firebase/auth';
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAuthUser } from '../test/auth';
 import { csvRow, shelfEntry, xmlRow } from '../test/fixtures';
 import { App } from './App';
 
 const service = vi.hoisted(() => ({
+  auth: {},
+  signIn: vi.fn<(email: string, password: string) => Promise<void>>(),
   getShelvedGames: vi.fn<() => Promise<Record<string, ShelfEntry>>>(),
   getImages: vi.fn<() => Promise<Record<string, GameImages>>>(),
   saveShelvedGames: vi.fn<() => Promise<void>>(),
@@ -12,7 +17,28 @@ const service = vi.hoisted(() => ({
 }));
 vi.mock('services/firebase', () => service);
 
+const authSdk = vi.hoisted(() => ({
+  onAuthStateChanged:
+    vi.fn<
+      (auth: unknown, onUser: (user: User | null) => void, onError: (error: Error) => void) => () => void
+    >(),
+}));
+vi.mock('firebase/auth', () => authSdk);
+
+let updateAuth: (user: User | null) => void;
+let failAuth: (error: Error) => void;
+let initialUser: User | null | undefined;
+const unsubscribe = vi.fn();
+
 beforeEach(() => {
+  initialUser = createAuthUser();
+  authSdk.onAuthStateChanged.mockImplementation((_auth, onUser, onError) => {
+    updateAuth = onUser;
+    failAuth = onError;
+    if (initialUser !== undefined) onUser(initialUser);
+    return unsubscribe;
+  });
+  service.signIn.mockReset().mockResolvedValue();
   service.getShelvedGames.mockResolvedValue({ '1': shelfEntry });
   service.getImages.mockResolvedValue({});
   service.saveShelvedGames.mockResolvedValue();
@@ -58,13 +84,29 @@ describe('modernized routes and Ant Design controls', () => {
     await waitFor(() => expect(service.saveShelvedGames).toHaveBeenCalledWith({ '1': shelfEntry }, false));
   });
 
-  it.each(['/login', '/not-a-route', '/shelves/missing'])(
-    'renders route %s without crashing',
-    async (path) => {
-      await navigate(path);
-      expect(await screen.findByText(path === '/login' ? 'Login content' : '404')).toBeInTheDocument();
-    },
-  );
+  it('keeps restored sessions working under Strict Mode', async () => {
+    window.location.hash = '/';
+    const view = render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    expect(unsubscribe).toHaveBeenCalled();
+    view.unmount();
+    expect(unsubscribe).toHaveBeenCalledTimes(2);
+  });
+
+  it('redirects the old login route home for authenticated visitors', async () => {
+    await navigate('/login');
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/');
+  });
+
+  it.each(['/not-a-route', '/shelves/missing'])('renders route %s without crashing', async (path) => {
+    await navigate(path);
+    expect(await screen.findByText('404')).toBeInTheDocument();
+  });
 
   it('completes CSV/XML import, classification, failed save and retry with mocked Firebase', async () => {
     await navigate('/sync');
@@ -90,5 +132,122 @@ describe('modernized routes and Ant Design controls', () => {
     expect(service.saveGames.mock.lastCall?.[0]).toEqual([
       expect.objectContaining({ id: '2', name: 'Imported Game', type: 'base' }),
     ]);
+  });
+});
+
+describe('authentication gate', () => {
+  it.each(['/', '/home', '/login', '/shelves', '/shelves/1', '/sync', '/not-a-route'])(
+    'does not mount navigation or read Firestore before authentication at %s',
+    async (path) => {
+      initialUser = undefined;
+      await navigate(path);
+      expect(screen.getByRole('status', { name: 'Verifying auth...' })).toBeInTheDocument();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+      expect(service.getShelvedGames).not.toHaveBeenCalled();
+      expect(service.getImages).not.toHaveBeenCalled();
+
+      act(() => updateAuth(null));
+      expect(screen.getByText('You are not logged in')).toBeInTheDocument();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+      expect(service.getShelvedGames).not.toHaveBeenCalled();
+      expect(service.getImages).not.toHaveBeenCalled();
+      expect(window.location.hash).toBe(`#${path}`);
+    },
+  );
+
+  it('validates credentials, reports failure and resumes the original URL after observed sign-in', async () => {
+    initialUser = null;
+    await navigate('/shelves/1');
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+    const dialog = screen.getByRole('dialog');
+    const login = within(dialog).getByRole('button', { name: 'Login' });
+    fireEvent.click(login);
+    expect(await screen.findByText('Enter your email.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter your password.')).toBeInTheDocument();
+    expect(service.signIn).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'invalid-email' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'not-a-real-password' } });
+    fireEvent.submit(screen.getByRole('form', { name: 'Sign in' }));
+    expect(await screen.findByText('Enter a valid email.')).toBeInTheDocument();
+    expect(service.signIn).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'test@example.com' } });
+    service.signIn.mockRejectedValueOnce(new Error('Invalid credentials'));
+    fireEvent.click(login);
+    expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
+    expect(service.getShelvedGames).not.toHaveBeenCalled();
+
+    let finishSignIn: () => void = () => {
+      throw new Error('Sign-in was not started');
+    };
+    service.signIn.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSignIn = resolve;
+        }),
+    );
+    fireEvent.click(login);
+    await waitFor(() => expect(login).toBeDisabled());
+    fireEvent.click(login);
+    expect(service.signIn).toHaveBeenCalledTimes(2);
+    await act(async () => finishSignIn());
+    expect(screen.getByText('You are not logged in')).toBeInTheDocument();
+    expect(service.getShelvedGames).not.toHaveBeenCalled();
+
+    act(() => updateAuth(createAuthUser()));
+    expect(await screen.findByText('This is a boxed game instance.')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/shelves/1');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('discards credentials when the login modal is dismissed', async () => {
+    initialUser = null;
+    await navigate('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'discard-this-password' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+  });
+
+  it('surfaces observer errors without mounting data queries', async () => {
+    initialUser = undefined;
+    await navigate('/');
+    act(() => failAuth(new Error('Auth unavailable')));
+    expect(screen.getByText('Unable to verify authentication')).toBeInTheDocument();
+    expect(screen.getByText('Auth unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(service.getShelvedGames).not.toHaveBeenCalled();
+  });
+
+  it('drops cached data on account changes and sign-out, including late reads', async () => {
+    let finishOldRead: (data: Record<string, ShelfEntry>) => void = () => {
+      throw new Error('Old read was not started');
+    };
+    service.getShelvedGames.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOldRead = resolve;
+        }),
+    );
+    await navigate('/shelves/1');
+    await waitFor(() => expect(service.getShelvedGames).toHaveBeenCalledTimes(1));
+
+    const changed = { ...shelfEntry, name: 'Other session game' };
+    service.getShelvedGames.mockResolvedValue({ '1': changed });
+    act(() => updateAuth(createAuthUser('other-user')));
+    expect(await screen.findByText('Other session game')).toBeInTheDocument();
+    await act(async () => finishOldRead({ '1': shelfEntry }));
+    expect(screen.getByText('Other session game')).toBeInTheDocument();
+
+    act(() => updateAuth(null));
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.getByText('You are not logged in')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const previousReads = service.getShelvedGames.mock.calls.length;
+    service.getShelvedGames.mockResolvedValue({});
+    act(() => updateAuth(createAuthUser('other-user')));
+    expect(await screen.findByText('404')).toBeInTheDocument();
+    expect(service.getShelvedGames.mock.calls.length).toBeGreaterThan(previousReads);
   });
 });

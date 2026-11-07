@@ -38,6 +38,37 @@ Legacy numeric game/shelf IDs are normalized to strings in memory; loading does 
 Dictionary reads return an empty dictionary for absent documents, but permission/network
 errors and invalid stored data are reported as errors.
 
+### Authentication
+
+The app follows lda's authentication flow: it waits for Firebase to restore your browser
+session, then shows either the app or a signed-out alert with an email/password Login modal.
+Any authenticated account in this Firebase project can use the same global collection.
+There is no signup, password-reset, or logout UI. Firebase remembers the session across
+browser restarts; external sign-out and account changes remove the previous session's data cache.
+The original hash URL is preserved through login; `/login` redirects authenticated visitors home.
+
+In Firebase Console, enable **Authentication > Sign-in method > Email/Password**, and use
+an existing account from **Authentication > Users**. Check **Authentication > Settings >
+Authorized domains** for your deployment domain and `localhost` if your configuration requires it.
+Do not put account passwords in environment files.
+
+To protect Firestore, copy the complete root [`firestore.rules`](./firestore.rules) file into
+**Firestore Database > Rules**, then publish it manually. No command in this change deploys rules.
+The file permits authenticated reads/writes to `general/shelved-games`, `general/images`, and
+`games/{gameId}`, and denies unauthenticated access and all unmatched paths.
+It does not enforce an owner allowlist or introduce per-user data.
+
+Before replacing existing rules, save them and preserve any unrelated rules needed by other
+apps sharing this project. A broader overlapping `allow` rule can override these restrictions:
+Firestore grants access when any matching allow condition succeeds.
+
+Use the console's Rules Playground to check reads and writes to both general documents and
+`games/test-game`: deny unauthenticated requests and allow authenticated requests. Also check
+that an authenticated request to an unrelated path such as `other/test` is denied.
+The supplied file has **no effect until you publish it**. The frontend gate alone does not
+secure direct database requests, hide the global dump in public assets, or hide compiled JavaScript.
+Public files, the existing import workflow, and stored document formats remain unchanged.
+
 ### Checks and tests
 
 ```sh
