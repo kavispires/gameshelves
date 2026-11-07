@@ -7,6 +7,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { SHELVES_IDS } from 'utils/constants';
 import { moveBoxes } from 'utils/library';
 import { NotFound } from '../NotFound/NotFound';
+import { BoxLocationModal } from './BoxLocationModal';
 import { BoxTable } from './BoxTable';
 
 export function Shelves() {
@@ -23,6 +24,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
   if (!library) return null;
   if (shelfId && !Object.hasOwn(SHELVES_IDS, shelfId)) {
     const legacyEntry =
@@ -46,6 +48,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
   const boxes = shelfId ? allBoxes.filter((box) => box.shelfId === shelfId) : allBoxes;
   const disabled = Boolean(library.legacy) || save.isPending;
   const failure = error || save.error?.message;
+  const editing = editingId ? boxedGames[editingId] : undefined;
 
   function place(ids: string[], destination: string, onSuccess?: () => void) {
     try {
@@ -104,7 +107,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
           title="Import and migrate your library in Settings to edit shelf placements."
         />
       )}
-      {failure && !adding && (
+      {failure && !adding && !editing && (
         <Alert type="error" className="mb-4" title="Shelf placement not saved" description={failure} />
       )}
       {shelfId && (
@@ -135,7 +138,26 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
           key={shelfId ?? 'all'}
           boxes={boxes}
           disabled={disabled}
-          onMove={(id, destination) => place([id], destination)}
+          onEdit={(box) => {
+            setError('');
+            save.reset();
+            setEditingId(box.id);
+          }}
+        />
+      )}
+      {editing && (
+        <BoxLocationModal
+          key={editing.id}
+          box={editing}
+          perShelf={perShelf}
+          saving={save.isPending}
+          error={failure || undefined}
+          onSave={(destination) => place([editing.id], destination, () => setEditingId(null))}
+          onCancel={() => {
+            setEditingId(null);
+            setError('');
+            save.reset();
+          }}
         />
       )}
       <Modal

@@ -31,15 +31,15 @@ const boxes: ShelfEntry[] = [
 ];
 
 function mount(data = boxes) {
-  const onMove = vi.fn();
+  const onEdit = vi.fn();
   render(
     <ConfigProvider theme={{ token: { motion: false } }}>
       <MemoryRouter>
-        <BoxTable boxes={data} disabled={false} onMove={onMove} />
+        <BoxTable boxes={data} disabled={false} onEdit={onEdit} />
       </MemoryRouter>
     </ConfigProvider>,
   );
-  return onMove;
+  return onEdit;
 }
 
 function displayedBoxes() {
@@ -50,6 +50,27 @@ function displayedBoxes() {
 }
 
 describe('physical box inventory table', () => {
+  it('separates storage from shelf, filters each independently and opens Edit without moving a box', async () => {
+    const onEdit = mount();
+    expect(screen.getByRole('link', { name: 'Left Cabinet 0' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Upper Left' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit location for Zulu box' }));
+    expect(onEdit).toHaveBeenCalledWith(boxes[1]);
+    expect(screen.queryByRole('combobox', { name: /^Move / })).not.toBeInTheDocument();
+
+    const storage = screen.getByRole('columnheader', { name: /Storage/ });
+    fireEvent.click(within(storage).getByRole('button', { name: 'filter' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'TV shelf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(displayedBoxes()).toEqual(['Zulu box']);
+
+    const shelf = screen.getByRole('columnheader', { name: /^Shelf/ });
+    fireEvent.click(within(shelf).getByRole('button', { name: 'filter' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'TV shelf: Upper Left' }));
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(displayedBoxes()).toEqual(['Zulu box']);
+  });
+
   it('searches contained games, sorts measurements numerically in both directions and filters sizes', async () => {
     mount();
     expect(displayedBoxes()).toEqual(['Alpha box', 'Zulu box']);

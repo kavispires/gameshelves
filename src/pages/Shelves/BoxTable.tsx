@@ -1,20 +1,20 @@
 import { InboxOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Popconfirm, Select, Table, type TableColumnsType, Typography } from 'antd';
+import { Button, Card, Input, Table, type TableColumnsType, Typography } from 'antd';
 import { GameCover } from 'components';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BOX_SIZES, SHELVES_IDS } from 'utils/constants';
+import { BOX_SIZES } from 'utils/constants';
+import { STORAGES, shelfName, storageForShelf } from 'utils/storage';
 
 type BoxTableProps = {
   boxes: ShelfEntry[];
   disabled: boolean;
-  onMove: (boxId: string, shelfId: string) => void;
+  onEdit: (box: ShelfEntry) => void;
 };
 
-const locationName = (id: string) => SHELVES_IDS[id]?.description ?? id;
 const contentsName = (box: ShelfEntry) => box.contains.map((game) => game.name).join(', ');
 
-export function BoxTable({ boxes, disabled, onMove }: BoxTableProps) {
+export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -58,17 +58,28 @@ export function BoxTable({ boxes, disabled, onMove }: BoxTableProps) {
       ),
     },
     {
+      title: 'Storage',
+      key: 'storage',
+      width: 140,
+      sorter: (a, b) => storageForShelf(a.shelfId).name.localeCompare(storageForShelf(b.shelfId).name),
+      filters: STORAGES.filter((storage) =>
+        boxes.some((box) => storageForShelf(box.shelfId).id === storage.id),
+      ).map((storage) => ({ text: storage.name, value: storage.id })),
+      onFilter: (value, box) => storageForShelf(box.shelfId).id === value,
+      render: (_, box) => storageForShelf(box.shelfId).name,
+    },
+    {
       title: 'Shelf',
       key: 'shelf',
       width: 180,
-      sorter: (a, b) => locationName(a.shelfId).localeCompare(locationName(b.shelfId)),
+      sorter: (a, b) => shelfName(a.shelfId).localeCompare(shelfName(b.shelfId)),
       filters: [...new Set(boxes.map((box) => box.shelfId))].map((id) => ({
-        text: locationName(id),
+        text: `${storageForShelf(id).name}: ${shelfName(id)}`,
         value: id,
       })),
       filterSearch: true,
       onFilter: (value, box) => box.shelfId === value,
-      render: (_, box) => <Link to={`/shelves/${box.shelfId}`}>{locationName(box.shelfId)}</Link>,
+      render: (_, box) => <Link to={`/shelves/${box.shelfId}`}>{shelfName(box.shelfId)}</Link>,
     },
     {
       title: 'Size',
@@ -106,42 +117,22 @@ export function BoxTable({ boxes, disabled, onMove }: BoxTableProps) {
     {
       title: 'Actions',
       key: 'actions',
-      width: 200,
+      width: 80,
       render: (_, box) => (
-        <div className="flex flex-col items-start gap-2">
-          <Select
-            aria-label={`Move ${box.name}`}
-            className="w-full"
-            value={box.shelfId}
-            showSearch
-            optionFilterProp="label"
-            disabled={disabled}
-            onChange={(shelfId) => onMove(box.id, shelfId)}
-            options={Object.entries(SHELVES_IDS).map(([id, shelf]) => ({
-              value: id,
-              label: shelf.description,
-            }))}
-          />
-          {box.shelfId !== 'unshelved' && (
-            <Popconfirm
-              title="Remove box from this shelf?"
-              description="The box and its games will remain in your library, marked unshelved."
-              okText="Remove"
-              disabled={disabled}
-              onConfirm={() => onMove(box.id, 'unshelved')}
-            >
-              <Button danger size="small" disabled={disabled} aria-label={`Unshelve ${box.name}`}>
-                Remove from shelf
-              </Button>
-            </Popconfirm>
-          )}
-        </div>
+        <Button
+          size="small"
+          disabled={disabled}
+          aria-label={`Edit location for ${box.name}`}
+          onClick={() => onEdit(box)}
+        >
+          Edit
+        </Button>
       ),
     },
   ];
 
   return (
-    <Card className="!rounded-2xl" styles={{ body: { padding: 0 } }}>
+    <Card styles={{ body: { padding: 0 } }}>
       <div className="flex flex-wrap items-center gap-3 p-4">
         <Input
           aria-label="Search boxes"
@@ -155,14 +146,14 @@ export function BoxTable({ boxes, disabled, onMove }: BoxTableProps) {
             setPage(1);
           }}
         />
-        <Typography.Text type="secondary">Changing a location saves immediately.</Typography.Text>
+        <Typography.Text type="secondary">Edit a box to choose its storage and shelf.</Typography.Text>
       </div>
       <Table<ShelfEntry>
         rowKey="id"
         dataSource={filtered}
         columns={columns}
         size="small"
-        scroll={{ x: 1330 }}
+        scroll={{ x: 1350 }}
         pagination={{
           current: page,
           pageSize,

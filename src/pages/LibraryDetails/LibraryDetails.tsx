@@ -217,7 +217,6 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       <Form layout="vertical" disabled={busy} className="space-y-5">
         {game && (
           <Card
-            className="!rounded-2xl"
             title={
               <Typography.Title level={2} className="!m-0 !text-lg">
                 Game details
@@ -264,7 +263,6 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
         {draft && (
           <section aria-label="Box details">
             <Card
-              className="!rounded-2xl"
               title={
                 <Typography.Title level={2} className="!m-0 !text-lg">
                   {draft.mainGameId === null ? 'Storage box' : 'Original box'}
@@ -399,7 +397,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
         )}
       </Form>
       {game && !draft && !containing && (
-        <Card className="!my-5 !rounded-2xl">
+        <Card className="!my-5">
           <Typography.Title level={2} className="!mt-0 !text-lg">
             Organize this game
           </Typography.Title>
@@ -480,7 +478,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       )}
       {containing && (
         <Card
-          className="!mt-5 !rounded-2xl"
+          className="!mt-5"
           title={
             <Typography.Title level={2} className="!m-0 !text-lg">
               On the shelf

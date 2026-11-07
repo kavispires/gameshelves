@@ -183,17 +183,17 @@ describe('modernized routes and Ant Design controls', () => {
   ])(
     'assigns a box to %s and shows only its cached location without rereading',
     async (shelfId, locationName, svgName) => {
-      await navigate('/shelves');
-      fireEvent.click(await screen.findByRole('button', { name: `Select shelf ${shelfId}` }));
-      expect(await screen.findByRole('heading', { name: locationName })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Add boxes' }));
-      const dialog = screen.getByRole('dialog');
-      fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Boxes to add' }));
-      fireEvent.change(within(dialog).getByRole('combobox', { name: 'Boxes to add' }), {
-        target: { value: 'Test' },
-      });
-      fireEvent.click(await screen.findByText('Test Game'));
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Add boxes' }));
+      await navigate('/shelves?view=table');
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit location for Test Game' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByText(svgName));
+      expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+      expect(within(dialog).getAllByRole('group')).toHaveLength(1);
+      fireEvent.click(within(dialog).getByRole('button', { name: `Select shelf ${shelfId}` }));
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+      expect(within(dialog).getByText(`Selected shelf: ${locationName}`)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
       await waitFor(() =>
         expect(service.saveLibrary).toHaveBeenCalledWith(library, {
           games: library.games,
@@ -263,24 +263,62 @@ describe('modernized routes and Ant Design controls', () => {
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
 
-  it('switches the shelf overview to a complete table and preserves placement on failed removal before retry', async () => {
+  it('clears a draft when switching storage and prevents edits or dismissal during a pending save', async () => {
+    let finish: ((saved: Library) => void) | undefined;
+    service.saveLibrary.mockImplementationOnce(
+      () =>
+        new Promise<Library>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    await navigate('/shelves?view=table');
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit location for Test Game' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Select shelf ew-cl-1' }));
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Storage' }));
+    fireEvent.click(await screen.findByText('TV shelf'));
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(within(dialog).queryByRole('button', { name: 'Select shelf ew-cl-1' })).not.toBeInTheDocument();
+    fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Select shelf tv-cr-1' }), { key: 'Enter' });
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled());
+    expect(within(dialog).getByRole('combobox', { name: 'Storage' })).toBeDisabled();
+    expect(within(dialog).queryByRole('button', { name: 'Select shelf tv-cl-0' })).not.toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape', code: 'Escape', keyCode: 27 });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const next = service.saveLibrary.mock.lastCall?.[1];
+    if (!finish || !next) throw new Error('Expected a pending placement save.');
+    await act(async () => finish?.({ ...next, revision: 'saved-placement' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('link', { name: 'Lower Right' })).toBeInTheDocument();
+  });
+
+  it('cancels draft placement and preserves placement on a failed Edit save before retry', async () => {
     await navigate('/shelves');
     fireEvent.click(await screen.findByRole('radio', { name: 'Table' }));
     expect(await screen.findByRole('table')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/shelves?view=table');
     expect(screen.queryByRole('group', { name: 'East shelf' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Test Game' })[0]).toHaveAttribute('href', '#/boxes/1');
-    fireEvent.click(screen.getByRole('button', { name: 'Unshelve Test Game' }));
+    async function selectUnshelved() {
+      fireEvent.click(screen.getByRole('button', { name: 'Edit location for Test Game' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByText('Unshelved'));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Select shelf unshelved' }));
+    }
+    await selectUnshelved();
     expect(service.saveLibrary).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(service.saveLibrary).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Unshelve Test Game' }));
+    await selectUnshelved();
     service.saveLibrary.mockRejectedValueOnce(new Error('Placement save failed'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Placement save failed')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'East Wall Left Cabinet 0' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Unshelve Test Game' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    expect(screen.getByRole('link', { name: 'Left Cabinet 0' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByRole('link', { name: 'Yet to be shelved' })).toBeInTheDocument();
     expect(service.saveLibrary.mock.lastCall?.[1]).toMatchObject({
       games: library.games,
