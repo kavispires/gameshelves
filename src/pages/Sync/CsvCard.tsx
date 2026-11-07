@@ -1,6 +1,7 @@
 import { App, Button, Card, Divider, Input, Typography } from 'antd';
 import type { ChangeEvent } from 'react';
 import { URLS } from 'utils/constants';
+import type { BGGCollection } from '../../types/bgg';
 import { parseCsvJson } from './importData';
 
 const { Paragraph, Link } = Typography;

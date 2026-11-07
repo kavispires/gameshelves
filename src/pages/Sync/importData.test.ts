@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { csvRow, xmlRow } from '../../test/fixtures';
+import type { BGGCollectionJson, MergedCollectionEntry } from '../../types/bgg';
 import { parseCsvJson, parseXmlJson } from './importData';
 import { mergeCollections, prepareRawGameShelfEntry, transformCSV, transformXML } from './utils';
 
@@ -11,12 +12,17 @@ describe('typed collection import', () => {
     ]);
   });
   it('preserves owned/preordered filtering, key mapping and numeric/string ID matching', () => {
+    const preorder: BGGCollectionJson = {
+      ...csvRow,
+      objectid: '3',
+      own: 0,
+      preordered: 1,
+      numplays: null,
+      quantity: null,
+      version_yearpublished: null,
+    };
     const csv = parseCsvJson(
-      JSON.stringify([
-        csvRow,
-        { ...csvRow, objectid: 3, own: 0, preordered: 1 },
-        { ...csvRow, objectid: 4, own: 0, preordered: 0 },
-      ]),
+      JSON.stringify([csvRow, preorder, { ...csvRow, objectid: 4, own: 0, preordered: 0 }]),
     );
     expect(csv.map(({ id, status }) => ({ id, status }))).toEqual([
       { id: '2', status: 'OWN' },
@@ -30,6 +36,16 @@ describe('typed collection import', () => {
       minPlayerCount: 1,
       image: xmlRow.image,
       languageDependence: 'None',
+    });
+  });
+
+  it('prepares CSV metadata without requiring a matching XML cover entry', () => {
+    const entry: MergedCollectionEntry = parseCsvJson(JSON.stringify([csvRow]))[0];
+    expect(prepareRawGameShelfEntry([entry])[0]).toMatchObject({
+      id: '2',
+      status: 'OWN',
+      image: '???',
+      thumbnail: '???',
     });
   });
 

@@ -1,3 +1,5 @@
+import type { BGGCollection, MergedCollectionEntry, XMLData } from '../../types/bgg';
+
 type TransformedCSV = Record<GameId, BGGCollection>;
 
 export function transformCSV(list: BGGCollection[]): TransformedCSV {
@@ -33,7 +35,7 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
       id: entry.id,
       name: entry.name,
       originalName: entry.originalName,
-      status: getStatus(entry.status),
+      status: entry.status,
       year: entry.year,
       weight: entry.weight,
       minPlayerCount: entry.minPlayerCount,
@@ -66,10 +68,6 @@ export function prepareRawGameShelfEntry(list: MergedCollectionEntry[]): GameEnt
   });
 
   return result;
-}
-
-function getStatus(status: string): GameStatus {
-  return status === 'PREORDERED' ? 'PREORDERED' : 'OWN';
 }
 
 function getCountNumbers(count: string): number[] {

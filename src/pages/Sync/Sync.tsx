@@ -1,6 +1,7 @@
 import { Divider, Layout, Row, Steps, Typography } from 'antd';
 import { useStep } from 'hooks';
 import { useState } from 'react';
+import type { BGGCollection, XMLData } from '../../types/bgg';
 import { ClassifierCard } from './ClassifierCard';
 import { CsvCard } from './CsvCard';
 import { MergeCard } from './MergeCard';

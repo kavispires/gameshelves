@@ -1,4 +1,5 @@
 import { isRecord } from 'utils/guards';
+import type { BGGCollection, XMLData } from '../../types/bgg';
 
 function text(entry: Record<string, unknown>, key: string): string {
   const value = entry[key];

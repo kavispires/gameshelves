@@ -1,11 +1,12 @@
 /**
- * Representation of what is output as a json when exporting a bgg collection from the user collection page
+ * A collection row after the CSV-to-JSON converter coerces numeric cells.
+ * Blank play counts, quantities, and version years may be null in legacy exports.
  */
-interface BGGCollectionJson {
+export type BGGCollectionJson = {
   objectname: string;
-  objectid: GameId;
+  objectid: GameId | number;
   rating: number;
-  numplays: null;
+  numplays: number | null;
   weight: number;
   own: number;
   fortrade: number;
@@ -52,17 +53,25 @@ interface BGGCollectionJson {
   cv_currency: string;
   acquisitiondate: string;
   acquiredfrom: string;
-  quantity: null;
+  quantity: number | null;
   privatecomment: string;
   invlocation: string;
   invdate: string;
   version_publishers: string;
   version_languages: string;
-  version_yearpublished: null;
+  version_yearpublished: number | null;
   version_nickname: string;
-}
+};
 
-interface BGGCollection {
+/**
+ * An uncoerced CSV row: all 58 columns are text, including numeric and empty cells.
+ */
+export type BGGCollectionCsvRow = Record<keyof BGGCollectionJson, string>;
+
+/**
+ * Owned/preordered metadata normalized by the current JSON import workflow.
+ */
+export type BGGCollection = {
   rating: number;
   weight: number;
   bestWith: string;
@@ -81,13 +90,13 @@ interface BGGCollection {
   rank: number;
   myRating: number;
   year: number;
-  status: 'OWN' | 'PREORDERED' | string;
-}
+  status: GameStatus;
+};
 
 /**
  * Result from a parsed BGGXML
  */
-interface BGGXml {
+export interface BGGXml {
   '@pubdate': string;
   '@termsofuse': string;
   '@totalitems': string;
@@ -97,7 +106,7 @@ interface BGGXml {
 /**
  * Each converted XML from BGG XML api
  */
-interface BGGXmlEntry {
+export interface BGGXmlEntry {
   '@objecttype': string;
   '@objectid': GameId;
   '@subtype': string;
@@ -149,11 +158,14 @@ interface BGGXmlEntry {
   numplays: string;
 }
 
-interface XMLData {
+export interface XMLData {
   id: GameId;
   image: string;
   thumbnail: string;
   type: string;
 }
 
-type MergedCollectionEntry = XMLData & BGGCollection;
+/**
+ * CSV metadata with optional covers when no matching XML entry exists.
+ */
+export type MergedCollectionEntry = BGGCollection & Partial<Pick<XMLData, 'image' | 'thumbnail'>>;

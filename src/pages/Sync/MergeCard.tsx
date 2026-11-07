@@ -2,6 +2,7 @@ import { Alert, Button, Card, Col, Image, Row, Spin, Statistic, Table, Typograph
 import { useQueryShelvedGames } from 'hooks';
 import { orderBy } from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
+import type { BGGCollection, XMLData } from '../../types/bgg';
 
 import {
   getShelvedGamesIdDictionary,
