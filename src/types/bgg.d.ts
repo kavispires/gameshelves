@@ -69,7 +69,7 @@ export type BGGCollectionJson = {
 export type BGGCollectionCsvRow = Record<keyof BGGCollectionJson, string>;
 
 /**
- * Owned/preordered metadata normalized by the current JSON import workflow.
+ * Owned/preordered metadata in the legacy converted-JSON workflow.
  */
 export type BGGCollection = {
   rating: number;

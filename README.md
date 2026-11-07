@@ -1,163 +1,117 @@
 # Game Shelves
 
-Private project with mapping of my own board game shelves. This repository is public because I'm poor.
+A personal board-game inventory that answers: **"Where did I put that game?"**
 
-## Development
+Game Shelves connects your BoardGameGeek (BGG) collection to your actual boxes and shelves.
+A base game, its expansions, and its promos can live together in one box, with one recorded location.
 
-Use Node **24.15.0** (`nvm use`, or your version manager's `.node-version` support) and Yarn **1.22.22**.
-The app uses React, strict TypeScript, Vite, Tailwind CSS, Ant Design, Biome, and TanStack Query.
+## What you can do
 
-```sh
-yarn install --frozen-lockfile
-cp .env.example .env
-# Fill in this app's Firebase project configuration and your BGG username.
-yarn dev
-```
+Sign in with an existing Firebase email/password account. All signed-in accounts share one
+global library; signing in does not create a separate collection.
 
-Open `http://localhost:3009/gameshelves/`. `yarn start` is an alias for `yarn dev`.
-The development server fails if port 3009 is occupied instead of switching ports.
-App-owned styles use Tailwind; Ant Design provides the UI components.
-Tailwind Preflight is deliberately omitted to preserve the existing Ant Design/global reset behavior.
-Ant Design styles are placed in the `antd` CSS layer, below Tailwind utilities.
+| Page           | What it does                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Find Game**  | Search every imported game, including expansions, promos and games not assigned to a box. Open a result to see its box and shelf location. |
+| **Game Night** | Placeholder for planning a game night and choosing games.                                                                                  |
+| **Shelves**    | View shelf contents and assign boxes to shelves. Game/box details let you manage contents, classification and measurements.                |
+| **Friends**    | Placeholder for friends and their game ratings.                                                                                            |
+| **Settings**   | Upload a complete BGG collection CSV, review changes and confirm the import. Reload saved data to pick up changes from another device.     |
 
-### Environment migration
+## Your catalog and your boxes
 
-Local `.env` files are ignored. Never commit real configuration values.
-Rename `REACT_APP_BGG_USERNAME` to `VITE_BGG_USERNAME` and Firebase variables from
-`REACT_APP_FIREBASE_*` to `VITE_FIREBASE_*` (including `VITE_FIREBASE_API_ID`).
-Replace `REACT_APP_FIREBASE_API_KEY` with three consecutive parts:
-`VITE_FIREBASE_A`, `VITE_FIREBASE_P`, and `VITE_FIREBASE_I`. Their concatenation must
-equal the original key, without extra quotes or spaces. This matches the lda service convention.
-`VITE_FIREBASE_DATABASE_URL` is optional; the remaining Firebase values are required.
-Restart Vite after changing environment variables.
+The **catalog** keeps selected BGG facts: ID, name, release year, ownership/preorder status,
+game/expansion classification, player counts and recommendations, playtime, complexity, ratings,
+rank, recommended age and language dependence. Known cover and thumbnail links also live here.
+Prices, private comments, play counts, edition details and other unused export fields are discarded.
 
-All `VITE_*` variables are embedded in client code. Splitting the Firebase API key is
-**not** a security measure; Firebase security rules and API restrictions protect the project.
-The Firebase project, collections, and existing document formats are unchanged.
-Legacy numeric game/shelf IDs are normalized to strings in memory; loading does not rewrite Firestore.
-Dictionary reads return an empty dictionary for absent documents, but permission/network
-errors and invalid stored data are reported as errors.
+**Boxes** describe your physical collection: a box-size category, optional external dimensions
+in millimeters, shelf location and the games inside. An original box's ID matches its main game's BGG ID.
+Standalone containers, such as the **Promos shoe box**, have their own ID and name without a main
+BGG game. They remain even when empty.
+Each game can live in at most one box; boxes cannot contain other boxes.
 
-### Authentication
+New games start **not assigned to a box**. From a game's details you can create its original box
+or assign it to an existing box. Removing a box assignment does not delete the game.
+You can change a game's classification, for example to promo, independently of BGG's category.
 
-The app follows lda's authentication flow: it waits for Firebase to restore your browser
-session, then shows either the app or a signed-out alert with an email/password Login modal.
-Any authenticated account in this Firebase project can use the same global collection.
-There is no signup, password-reset, or logout UI. Firebase remembers the session across
-browser restarts; external sign-out and account changes remove the previous session's data cache.
-The original hash URL is preserved through login; `/login` redirects authenticated visitors home.
+Dimensions are optional for now. Enter all three positive measurements of the closed box:
+width, height and depth. Shelving does not yet require dimensions or calculate whether a box fits.
+A box marked `unshelved` exists but has no assigned shelf.
 
-In Firebase Console, enable **Authentication > Sign-in method > Email/Password**, and use
-an existing account from **Authentication > Users**. Check **Authentication > Settings >
-Authorized domains** for your deployment domain and `localhost` if your configuration requires it.
-Do not put account passwords in environment files.
+## Importing from BGG
 
-To protect Firestore, copy the complete root [`firestore.rules`](./firestore.rules) file into
-**Firestore Database > Rules**, then publish it manually. No command in this change deploys rules.
-The file permits authenticated reads/writes to `general/shelved-games`, `general/images`, and
-`games/{gameId}`, and denies unauthenticated access and all unmatched paths.
-It does not enforce an owner allowlist or introduce per-user data.
+Import is **manual and one-way**. It does not update BGG or run automatically.
 
-Before replacing existing rules, save them and preserve any unrelated rules needed by other
-apps sharing this project. A broader overlapping `allow` rule can override these restrictions:
-Firestore grants access when any matching allow condition succeeds.
+1. Export your **complete collection** as CSV from BGG. Filtered/partial exports are not supported.
+2. Choose the CSV in **Settings**. It is parsed locally; choosing a file does not save it.
+   No JSON conversion or XML file is needed.
+3. Review the additions, updates and removals. Only owned/preordered games are included.
+4. Confirm that the file is your complete collection. If games are being removed, explicitly
+   approve the removal list too.
+5. Review the final confirmation and save.
 
-Use the console's Rules Playground to check reads and writes to both general documents and
-`games/test-game`: deny unauthenticated requests and allow authenticated requests. Also check
-that an authenticated request to an unrelated path such as `other/test` is denied.
-The supplied file has **no effect until you publish it**. The frontend gate alone does not
-secure direct database requests, hide the global dump in public assets, or hide compiled JavaScript.
-Public files, the existing import workflow, and stored document formats remain unchanged.
+Imports refresh BGG facts but preserve existing classification, box contents, measurements,
+shelf locations and cover links. They do not require you to organize new purchases immediately.
+Equivalent duplicate BGG rows collapse into one game; conflicting duplicates and invalid files
+block import. An export with no eligible games cannot erase the library.
 
-### Checks and tests
+A game missing from the imported collection is removed from the **active library** after confirmation.
+If its original box held games you still own, those games remain in the catalog but become unassigned;
+the preview warns you. Removing an expansion does not remove its containing box.
 
-```sh
-yarn lint        # Full-project, non-mutating Biome check
-yarn format      # Apply formatting, import organization, and safe lint fixes
-yarn typecheck   # Strict application and Vite/test configuration checks
-yarn test        # Vitest + Testing Library; Firebase is mocked
-yarn test:watch
-yarn build       # Typecheck, then production build
-yarn preview     # http://localhost:4173/gameshelves/
-```
+CSV exports contain an image identifier, **not cover URLs**. Existing covers are preserved; games
+without known URLs show a placeholder. Automatic image fetching and XML enrichment are not included.
 
-Husky runs lint-staged/Biome on supported staged files before commits.
-`yarn run check` also runs Biome; use `run` explicitly because Yarn Classic reserves `yarn check`.
-Tests cover Firebase writes and batch retries, TanStack cache invalidation,
-collection imports, hash routing, and the sync UI without contacting production Firebase.
-Large game saves use fresh batches of at most 500 writes. Multiple batches and the
-separate shelf write are not one atomic transaction; failures remain visible and retrying
-rewrites the same game IDs.
+Changing the local `collection.csv` file alone does not change the app.
 
-### Deployment
+## Where your data lives
 
-`yarn deploy` builds and publishes `build/` using `gh-pages`. Deployment is a separate,
-explicit action: normal development/check commands never publish.
-Vite's base is `/gameshelves/`, matching the existing GitHub Pages location.
-Keep hash URLs such as `/gameshelves/#/shelves` so direct navigation and reloads work
-without server-side routing configuration.
+Firestore is the live database. After migration, the app reads two shared documents:
 
-## Shelf ID Construction
+| Firestore document | Contents                                                            |
+| ------------------ | ------------------------------------------------------------------- |
+| `general/catalog`  | The game catalog, including known covers and manual classification. |
+| `general/boxes`    | Physical boxes, their contents, dimensions and shelf locations.     |
 
-`<wall>-<container>-<part_id>`
+The app loads them once per signed-in app session and reuses the data across pages. Search does not
+read Firestore as you type. Successful saves update the browser cache directly; other-device changes
+appear after **Reload saved library** in Settings or a reload. This button only reads saved data;
+it never applies a CSV and clears any unsaved import preview. Saves may reread the documents to check
+for conflicts. If the library changed since your preview, refresh and rebuild it instead of overwriting.
 
-wall values:
+Catalog and box changes save together atomically. Each document has a conservative 800 KiB budget,
+below Firestore's 1 MiB limit. Oversized imports are blocked before writing; partitioning into
+additional documents is future work.
 
-- ew: east wall, the one with no windows
-- ww: west wall, the one with the big window
+### First import and existing libraries
 
-container values:
+Before migration, the existing library remains readable but organization editing is disabled.
+Migration happens only through the first confirmed CSV import in Settings, never simply by signing in.
+The first preview also reads legacy game records once to recover cover URLs and classification
+that might never have reached the old shared documents.
+It preserves known covers and physical organization, including the standalone promos container.
+Ambiguous main-game IDs in original game boxes, duplicate assignments
+or invalid measurements block migration with an explanation; resolve those legacy entries before retrying.
 
-- sl: shelf left
-- sc: shelf center
-- sr: shelf right
-- cl: cabinet left
-- cr: cabinet right
-- dc: drawer center
+The old `general/shelved-games`, `general/images` and `games/{game-id}` records remain untouched
+as backups. The app stops reading them after migration; cleanup requires a separate decision.
+Removed games can remain in these backups until then.
 
-part_id are numbers always starting coming from 0
+### Database setup
 
-## Collections:
+Before using the new import, manually publish the supplied [Firestore rules](./firestore.rules)
+in Firebase Console, merging any rules needed by other apps. They allow authenticated access to
+the new documents and read-only access to the legacy records; publishing them prevents older app
+versions from continuing to write the legacy stores.
 
-- games/<game-id> -  each board game geek entry
-- general/shelves - object with all games in shelves by <game-id> but only boxed games
-- ~~general/unshelved - object with all games that are not in shelves~~
-- ~~general/all-games - object with snippet information about each game (name, image, type) [I think I don't need this, if I expand the .contains field in shelves to have these 3 information]~~
+Also add **single-field index exemptions** for the `games` and `boxes` map fields in collection
+`general`, disabling ascending, descending and array indexes (including inherited map-subfield
+indexes). [firestore.indexes.json](./firestore.indexes.json) records the configuration.
+These maps are loaded whole, not searched with Firestore queries; indexing every nested game field
+can exceed Firestore's index limits. Neither file takes effect until you apply it.
 
-## Routes
+## Not included yet
 
-All routes use hash URLs under `/gameshelves/` and require authentication.
-
-| Route          | Menu entry | Content                                                     |
-| -------------- | ---------- | ----------------------------------------------------------- |
-| `/`            | Find Game  | Home page with the existing game search and shelf overview. |
-| `/game-night`  | Game Night | Placeholder for game-night planning and suggestions.        |
-| `/shelves`     | Shelves    | Existing shelf overview and game-placement controls.        |
-| `/shelves/:id` | Shelves    | Existing game/box details and shelf location.               |
-| `/friends`     | Friends    | Placeholder for friends and their game ratings.             |
-| `/settings`    | Settings   | Existing BGG collection sync workflow.                      |
-
-Legacy `/home` and `/login` URLs redirect authenticated visitors to `/`.
-Legacy `/sync` URLs redirect to `/settings`.
-
-### Collection sync in Settings
-
-When wanting to update the game collection, a sync is necessary. It uses the CSV data and the XML data from BGG.
-After both are parsed, it verifies what entries are new by checking against all-games (auto-generated from .contains)
-
-- If the user selects `Add New Only`:
-  -- Prompt every entry to select it's type and if it's boxed nor not [check if there's any other required information to do here]
-  -- Adds entries in `games/`
-  -- Adds entries in shelves as `shelfId: unshelved`
-- If the users selects `Resync All`:
-- Saves every entry in `games` (it costs firebase writes)
-- For new games it does the new game only process
-
-## /update
-
-Allows update information about a game, more particularly in /shelves
-Rules: A non-boxed game can never contain another
-
-- Add fields to /shelves
-  -- soundtrack?: string - link to spotify suggested soundtrack
-  -- metalCints?: boolean
+Independent tracking of multiple copies/editions, a new shelf model, automatic organization,
+friend ratings and game-night recommendations are future work.

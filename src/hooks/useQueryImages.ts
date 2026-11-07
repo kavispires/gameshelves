@@ -1,38 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { getImages as getImagesDocument } from 'services/firebase';
 import { URLS } from 'utils/constants';
-import { queryKeys } from './queryKeys';
+import { useLibrary } from './useLibrary';
 
-const fallback: GameImages = {
-  thumbnail: URLS.BGG_NO_IMAGE,
-  image: URLS.BGG_NO_IMAGE,
-};
-
-/**
- * Queries game images
- */
 export function useQueryImages() {
-  const { isSuccess, data, ...rest } = useQuery({
-    queryKey: queryKeys.images,
-    queryFn: getImagesDocument,
-  });
-
-  const images = useMemo(() => data ?? {}, [data]);
-
-  const getImages = (id: GameId) => images?.[id] ?? fallback;
-
-  const getThumbnail = (id: GameId) => getImages(id).thumbnail ?? URLS.BGG_NO_IMAGE;
-
-  const getCover = (id: GameId) => getImages(id).thumbnail ?? URLS.BGG_NO_IMAGE;
-
-  return {
-    ...rest,
-    isSuccess,
-    data,
-    images,
-    getImages,
-    getThumbnail,
-    getCover,
-  };
+  const query = useLibrary();
+  const images: Record<string, GameImages> = query.data?.legacy?.images ?? query.data?.games ?? {};
+  const getImages = (id: GameId): GameImages => images[id] ?? {};
+  const getThumbnail = (id: GameId) => getImages(id).thumbnail || URLS.BGG_NO_IMAGE;
+  const getCover = (id: GameId) => getImages(id).image || getThumbnail(id);
+  return { ...query, images, getImages, getThumbnail, getCover };
 }

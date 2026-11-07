@@ -1,0 +1,7 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "general", "fieldPath": "games", "indexes": [] },
+    { "collectionGroup": "general", "fieldPath": "boxes", "indexes": [] }
+  ]
+}

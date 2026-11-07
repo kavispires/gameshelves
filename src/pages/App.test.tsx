@@ -1,19 +1,19 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ConfigProvider } from 'antd';
 import type { User } from 'firebase/auth';
+import Papa from 'papaparse';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAuthUser } from '../test/auth';
-import { csvRow, shelfEntry, xmlRow } from '../test/fixtures';
+import { csvRow, library, promosLibrary } from '../test/fixtures';
+import type { Library, LibraryContent } from '../types/library';
 import { App } from './App';
 
 const service = vi.hoisted(() => ({
   auth: {},
   signIn: vi.fn<(email: string, password: string) => Promise<void>>(),
-  getShelvedGames: vi.fn<() => Promise<Record<string, ShelfEntry>>>(),
-  getImages: vi.fn<() => Promise<Record<string, GameImages>>>(),
-  saveShelvedGames: vi.fn<() => Promise<void>>(),
-  saveGames: vi.fn<(games: GameEntry[]) => Promise<void>>(),
+  getLibrary: vi.fn<() => Promise<Library>>(),
+  saveLibrary: vi.fn<(base: Library, next: LibraryContent) => Promise<Library>>(),
 }));
 vi.mock('services/firebase', () => service);
 
@@ -39,10 +39,8 @@ beforeEach(() => {
     return unsubscribe;
   });
   service.signIn.mockReset().mockResolvedValue();
-  service.getShelvedGames.mockResolvedValue({ '1': shelfEntry });
-  service.getImages.mockResolvedValue({});
-  service.saveShelvedGames.mockResolvedValue();
-  service.saveGames.mockResolvedValue();
+  service.getLibrary.mockResolvedValue(library);
+  service.saveLibrary.mockImplementation(async (_base, next) => ({ ...next, revision: crypto.randomUUID() }));
   const getComputedStyle = window.getComputedStyle;
   vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => getComputedStyle(element));
 });
@@ -68,8 +66,8 @@ describe('modernized routes and Ant Design controls', () => {
     const search = await screen.findByRole('combobox');
     fireEvent.change(search, { target: { value: 'Test' } });
     fireEvent.mouseDown(search);
-    fireEvent.click(await screen.findByText('Test Game [base] :: BOX'));
-    expect(await screen.findByText('This is a boxed game instance.')).toBeInTheDocument();
+    fireEvent.click(await screen.findByText('Test Game [base]'));
+    expect(await screen.findByRole('heading', { name: 'Original box' })).toBeInTheDocument();
     expect(window.location.hash).toBe('#/shelves/1');
     expect(screen.getByRole('link', { name: 'Shelves' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Find Game' })).not.toHaveAttribute('aria-current');
@@ -146,7 +144,12 @@ describe('modernized routes and Ant Design controls', () => {
     fireEvent.keyDown(path, { key: 'Enter' });
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save Shelf' }));
-    await waitFor(() => expect(service.saveShelvedGames).toHaveBeenCalledWith({ '1': shelfEntry }, false));
+    await waitFor(() =>
+      expect(service.saveLibrary).toHaveBeenCalledWith(library, {
+        games: library.games,
+        boxes: library.boxes,
+      }),
+    );
   });
 
   it('keeps restored sessions working under Strict Mode', async () => {
@@ -173,30 +176,109 @@ describe('modernized routes and Ant Design controls', () => {
     expect(await screen.findByText('404')).toBeInTheDocument();
   });
 
-  it('completes CSV/XML import, classification, failed save and retry with mocked Firebase', async () => {
+  it('previews direct CSV, requires complete/deletion confirmation, and preserves data on save failure and retry', async () => {
     await navigate('/settings');
-    fireEvent.change(await screen.findByPlaceholderText('Paste JSON for BGG Collection'), {
-      target: { value: JSON.stringify([csvRow]) },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.change(await screen.findByPlaceholderText('Paste JSON for BGG XML Collection'), {
-      target: { value: JSON.stringify({ item: [xmlRow] }) },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Add New Only' }));
-    fireEvent.click(await screen.findByRole('radio', { name: 'base' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save Data' }));
-    const confirmation = await screen.findByRole('tooltip');
-    fireEvent.click(within(confirmation).getByRole('button', { name: 'OK' }));
-    service.saveGames.mockRejectedValueOnce(new Error('offline'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save 1 games' }));
-    expect(await screen.findByText('Failed to save games')).toBeInTheDocument();
+    const uploadRequest = vi.spyOn(XMLHttpRequest.prototype, 'open');
+    const file = new File([Papa.unparse([csvRow])], 'collection.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: () => Promise.resolve(Papa.unparse([csvRow])) });
+    fireEvent.change(await screen.findByLabelText('BGG collection CSV'), { target: { files: [file] } });
+    expect(await screen.findByRole('region', { name: 'Import preview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose CSV file' })).toBeInTheDocument();
+    expect(screen.getByText('collection.csv')).toBeInTheDocument();
+    expect(uploadRequest).not.toHaveBeenCalled();
+    const review = screen.getByRole('button', { name: 'Review and save import' });
+    expect(review).toBeDisabled();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox', { name: /complete collection/ }));
+    expect(review).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: /confirm deleting/ }));
+    fireEvent.click(review);
+    service.saveLibrary.mockRejectedValueOnce(new Error('offline'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm import' }));
     expect(await screen.findByText('offline')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Save 1 games' }));
-    expect(await screen.findByText('New games added successfully')).toBeInTheDocument();
-    expect(service.saveGames.mock.lastCall?.[0]).toEqual([
-      expect.objectContaining({ id: '2', name: 'Imported Game', type: 'base' }),
-    ]);
+    fireEvent.click(review);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm import' }));
+    expect(await screen.findByText('Collection imported successfully')).toBeInTheDocument();
+    expect(service.saveLibrary.mock.lastCall?.[1]).toMatchObject({
+      games: { '2': { id: '2', name: 'Imported Game', type: 'base' } },
+      boxes: {},
+    });
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
+    const search = await screen.findByRole('combobox');
+    fireEvent.change(search, { target: { value: 'Imported' } });
+    fireEvent.mouseDown(search);
+    fireEvent.click(await screen.findByText('Imported Game [base]'));
+    expect(await screen.findByText('Not assigned to a box.')).toBeInTheDocument();
+  });
+
+  it('reloads saved data without a CSV or writes, and discards an unsaved preview', async () => {
+    await navigate('/settings');
+    const reload = await screen.findByRole('button', { name: 'Reload saved library' });
+    await waitFor(() => expect(reload).toBeEnabled());
+    fireEvent.click(reload);
+    await waitFor(() => expect(service.getLibrary).toHaveBeenCalledTimes(2));
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Review and save import' })).not.toBeInTheDocument();
+    const file = new File([], 'collection.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: () => Promise.resolve(Papa.unparse([csvRow])) });
+    fireEvent.change(screen.getByLabelText('BGG collection CSV'), { target: { files: [file] } });
+    expect(await screen.findByRole('region', { name: 'Import preview' })).toBeInTheDocument();
+    fireEvent.click(reload);
+    await waitFor(() => expect(service.getLibrary).toHaveBeenCalledTimes(3));
+    expect(screen.queryByRole('region', { name: 'Import preview' })).not.toBeInTheDocument();
+    expect(screen.queryByText('collection.csv')).not.toBeInTheDocument();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('edits the promos shoe box and can remove its first and only contained game', async () => {
+    service.getLibrary.mockResolvedValue(promosLibrary);
+    await navigate('/shelves/promos');
+    expect(await screen.findByRole('heading', { name: 'Promos shoe box' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Games in box')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Game classification')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save box' }));
+    await waitFor(() =>
+      expect(service.saveLibrary).toHaveBeenCalledWith(promosLibrary, {
+        games: promosLibrary.games,
+        boxes: { promos: { ...promosLibrary.boxes.promos, updatedAt: expect.any(Number) } },
+      }),
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Test Game' }));
+    expect(await screen.findByRole('heading', { name: 'Test Game' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Promos shoe box' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from box' }));
+    expect(await screen.findByText('Not assigned to a box.')).toBeInTheDocument();
+    expect(service.saveLibrary.mock.lastCall?.[1]).toMatchObject({
+      games: promosLibrary.games,
+      boxes: { promos: { mainGameId: null, name: 'Promos shoe box', contains: [] } },
+    });
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+  it('creates a measured box after import without accepting partial dimensions', async () => {
+    service.getLibrary.mockResolvedValue({ ...library, boxes: {} });
+    await navigate('/shelves/1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Create original box' }));
+    fireEvent.change(screen.getByLabelText('Width (mm)'), { target: { value: '300' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save box' }));
+    expect(await screen.findByText(/Enter all three positive dimensions/)).toBeInTheDocument();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Height (mm)'), { target: { value: '80' } });
+    fireEvent.change(screen.getByLabelText('Depth (mm)'), { target: { value: '300' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save box' }));
+    await waitFor(() =>
+      expect(service.saveLibrary).toHaveBeenCalledWith(
+        { ...library, boxes: {} },
+        expect.objectContaining({
+          boxes: {
+            '1': expect.objectContaining({
+              contains: ['1'],
+              dimensions: { width: 300, height: 80, depth: 300 },
+            }),
+          },
+        }),
+      ),
+    );
   });
 });
 
@@ -217,14 +299,12 @@ describe('authentication gate', () => {
     await navigate(path);
     expect(screen.getByRole('status', { name: 'Verifying auth...' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-    expect(service.getShelvedGames).not.toHaveBeenCalled();
-    expect(service.getImages).not.toHaveBeenCalled();
+    expect(service.getLibrary).not.toHaveBeenCalled();
 
     act(() => updateAuth(null));
     expect(screen.getByText('You are not logged in')).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-    expect(service.getShelvedGames).not.toHaveBeenCalled();
-    expect(service.getImages).not.toHaveBeenCalled();
+    expect(service.getLibrary).not.toHaveBeenCalled();
     expect(window.location.hash).toBe(`#${path}`);
   });
 
@@ -248,7 +328,7 @@ describe('authentication gate', () => {
     service.signIn.mockRejectedValueOnce(new Error('Invalid credentials'));
     fireEvent.click(login);
     expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
-    expect(service.getShelvedGames).not.toHaveBeenCalled();
+    expect(service.getLibrary).not.toHaveBeenCalled();
 
     let finishSignIn: () => void = () => {
       throw new Error('Sign-in was not started');
@@ -265,10 +345,10 @@ describe('authentication gate', () => {
     expect(service.signIn).toHaveBeenCalledTimes(2);
     await act(async () => finishSignIn());
     expect(screen.getByText('You are not logged in')).toBeInTheDocument();
-    expect(service.getShelvedGames).not.toHaveBeenCalled();
+    expect(service.getLibrary).not.toHaveBeenCalled();
 
     act(() => updateAuth(createAuthUser()));
-    expect(await screen.findByText('This is a boxed game instance.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Original box' })).toBeInTheDocument();
     expect(window.location.hash).toBe('#/shelves/1');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -290,37 +370,37 @@ describe('authentication gate', () => {
     expect(screen.getByText('Unable to verify authentication')).toBeInTheDocument();
     expect(screen.getByText('Auth unavailable')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
-    expect(service.getShelvedGames).not.toHaveBeenCalled();
+    expect(service.getLibrary).not.toHaveBeenCalled();
   });
 
   it('drops cached data on account changes and sign-out, including late reads', async () => {
-    let finishOldRead: (data: Record<string, ShelfEntry>) => void = () => {
+    let finishOldRead: (data: Library) => void = () => {
       throw new Error('Old read was not started');
     };
-    service.getShelvedGames.mockImplementationOnce(
+    service.getLibrary.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           finishOldRead = resolve;
         }),
     );
     await navigate('/shelves/1');
-    await waitFor(() => expect(service.getShelvedGames).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(service.getLibrary).toHaveBeenCalledTimes(1));
 
-    const changed = { ...shelfEntry, name: 'Other session game' };
-    service.getShelvedGames.mockResolvedValue({ '1': changed });
+    const changed = { ...library, games: { '1': { ...library.games['1'], name: 'Other session game' } } };
+    service.getLibrary.mockResolvedValue(changed);
     act(() => updateAuth(createAuthUser('other-user')));
-    expect(await screen.findByText('Other session game')).toBeInTheDocument();
-    await act(async () => finishOldRead({ '1': shelfEntry }));
-    expect(screen.getByText('Other session game')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Other session game' })).toBeInTheDocument();
+    await act(async () => finishOldRead(library));
+    expect(screen.getByRole('heading', { name: 'Other session game' })).toBeInTheDocument();
 
     act(() => updateAuth(null));
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.getByText('You are not logged in')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    const previousReads = service.getShelvedGames.mock.calls.length;
-    service.getShelvedGames.mockResolvedValue({});
+    const previousReads = service.getLibrary.mock.calls.length;
+    service.getLibrary.mockResolvedValue({ revision: 'empty', games: {}, boxes: {} });
     act(() => updateAuth(createAuthUser('other-user')));
     expect(await screen.findByText('404')).toBeInTheDocument();
-    expect(service.getShelvedGames.mock.calls.length).toBeGreaterThan(previousReads);
+    expect(service.getLibrary.mock.calls.length).toBeGreaterThan(previousReads);
   });
 });

@@ -12,6 +12,7 @@ export function SearchBar({ searchOptions }: SearchBarProps) {
 
   return (
     <AutoComplete
+      aria-label="Find a game"
       options={searchOptions}
       style={{ width: '80%', margin: '10vh auto', display: 'block' }}
       onSelect={onSelect}

@@ -2,22 +2,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { gameEntry, shelfEntry } from '../test/fixtures';
+import { catalogGame, library, promosLibrary } from '../test/fixtures';
+import type { Library, LibraryContent } from '../types/library';
 import { queryKeys } from './queryKeys';
-import { useMutateGame } from './useMutateGame';
-import { useMutateImages } from './useMutateImages';
+import { useLibrary, useSaveLibrary } from './useLibrary';
 import { useMutateShelvedGames } from './useMutateShelvedGames';
-import { useQueryGame } from './useQueryGame';
 import { useQueryImages } from './useQueryImages';
 import { useQueryShelvedGames } from './useQueryShelvedGames';
 
 const service = vi.hoisted(() => ({
-  getShelvedGames: vi.fn<() => Promise<Record<string, ShelfEntry>>>(),
-  getImages: vi.fn<() => Promise<Record<string, GameImages>>>(),
-  getGame: vi.fn<() => Promise<GameEntry>>(),
-  saveShelvedGames: vi.fn<() => Promise<void>>(),
-  saveImages: vi.fn<() => Promise<void>>(),
-  saveGame: vi.fn<() => Promise<void>>(),
+  getLibrary: vi.fn<() => Promise<Library>>(),
+  saveLibrary: vi.fn<(base: Library, next: LibraryContent) => Promise<Library>>(),
 }));
 vi.mock('services/firebase', () => service);
 
@@ -33,90 +28,89 @@ function harness() {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  service.getShelvedGames.mockResolvedValue({ '1': shelfEntry });
-  service.getImages.mockResolvedValue({});
-  service.getGame.mockResolvedValue(gameEntry);
-  service.saveShelvedGames.mockResolvedValue();
-  service.saveImages.mockResolvedValue();
-  service.saveGame.mockResolvedValue();
+  service.getLibrary.mockResolvedValue(library);
+  service.saveLibrary.mockImplementation(async (_base, next) => ({ ...next, revision: 'saved' }));
 });
 
-describe('TanStack query migration', () => {
-  it('preserves initial loading, derived shelf data, and visible query failure', async () => {
-    const { wrapper } = harness();
-    const { result } = renderHook(() => useQueryShelvedGames(), { wrapper });
-    expect(result.current.isLoading).toBe(true);
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.perShelf['ew-cl-0']).toEqual([shelfEntry]);
-    expect(result.current.searchOptions[0].value).toBe('1');
-
-    service.getShelvedGames.mockRejectedValueOnce(new Error('permission-denied'));
-    await act(async () => {
-      await result.current.refetch();
+describe('shared session library cache', () => {
+  it('shares one load across hooks and remounts, including expansion search and covers', async () => {
+    service.getLibrary.mockResolvedValue({
+      ...library,
+      games: { ...library.games, '2': { ...catalogGame, id: '2', name: 'Expansion' } },
+      boxes: { '1': { ...library.boxes['1'], contains: ['1', '2'] } },
     });
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.message).toBe('permission-denied');
-    expect(result.current.response).toEqual({ '1': shelfEntry });
+    const { wrapper } = harness();
+    const view = renderHook(() => ({ shelves: useQueryShelvedGames(), images: useQueryImages() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(view.result.current.shelves.isSuccess).toBe(true));
+    expect(view.result.current.shelves.searchOptions.map((option) => option.value)).toEqual(['2', '1']);
+    expect(view.result.current.images.getCover('1')).toBe(catalogGame.image);
+    view.unmount();
+    const again = renderHook(() => useLibrary(), { wrapper });
+    await waitFor(() => expect(again.result.current.isSuccess).toBe(true));
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
 
-  it('refreshes shelved games after a successful replacement write without a manual refetch', async () => {
-    const { wrapper } = harness();
-    const { result } = renderHook(
-      () => ({
-        query: useQueryShelvedGames(),
-        mutation: useMutateShelvedGames(true),
-      }),
-      { wrapper },
-    );
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    service.getShelvedGames.mockResolvedValue({});
-    await act(async () => {
-      await result.current.mutation.mutateAsync({});
-    });
-    await waitFor(() => expect(result.current.query.response).toEqual({}));
-    expect(service.saveShelvedGames).toHaveBeenCalledWith({}, true);
-    expect(result.current.mutation.isSuccess).toBe(true);
-  });
-
-  it('refreshes image and game queries using their full array keys', async () => {
+  it('sets the whole library cache after saves without invalidating or rereading it', async () => {
     const { wrapper, client } = harness();
-    const { result } = renderHook(
-      () => ({
-        images: useQueryImages(),
-        game: useQueryGame('1'),
-        saveImages: useMutateImages(),
-        saveGame: useMutateGame('1'),
-      }),
-      { wrapper },
-    );
-    await waitFor(() => expect(result.current.game.isSuccess).toBe(true));
-    await waitFor(() => expect(result.current.images.isSuccess).toBe(true));
-    service.getImages.mockResolvedValue({ '1': { thumbnail: 'new.jpg' } });
-    service.getGame.mockResolvedValue({ ...gameEntry, name: 'Updated Game' });
+    const { result } = renderHook(() => ({ query: useLibrary(), save: useSaveLibrary() }), { wrapper });
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    const next = { games: { '1': { ...catalogGame, name: 'Updated game' } }, boxes: {} };
     await act(async () => {
-      await result.current.saveImages.mutateAsync({ '1': { thumbnail: 'new.jpg' } });
-      await result.current.saveGame.mutateAsync({ ...gameEntry, name: 'Updated Game' });
+      await result.current.save.mutateAsync({ base: library, next });
     });
-    await waitFor(() => expect(result.current.images.getThumbnail('1')).toBe('new.jpg'));
-    expect(client.getQueryData(queryKeys.game('1'))).toEqual({ ...gameEntry, name: 'Updated Game' });
+    expect(client.getQueryData(queryKeys.library)).toEqual({ ...next, revision: 'saved' });
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces failed writes and does not invalidate successful cached data', async () => {
+  it('adapts shelf placement writes into atomic shared-library writes', async () => {
     const { wrapper } = harness();
-    const { result } = renderHook(
-      () => ({
-        query: useQueryShelvedGames(),
-        mutation: useMutateShelvedGames(),
-      }),
-      { wrapper },
-    );
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    service.saveShelvedGames.mockRejectedValueOnce(new Error('offline'));
-    await act(async () => {
-      await expect(result.current.mutation.mutateAsync({})).rejects.toThrow('offline');
+    const { result } = renderHook(() => ({ query: useQueryShelvedGames(), save: useMutateShelvedGames() }), {
+      wrapper,
     });
-    await waitFor(() => expect(result.current.mutation.isError).toBe(true));
-    expect(service.getShelvedGames).toHaveBeenCalledTimes(1);
-    expect(result.current.query.response).toEqual({ '1': shelfEntry });
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    const entry = result.current.query.response['1'];
+    await act(async () => {
+      await result.current.save.mutateAsync({ '1': { ...entry, shelfId: 'unshelved' } });
+    });
+    expect(service.saveLibrary).toHaveBeenCalledWith(library, {
+      games: library.games,
+      boxes: { '1': { ...library.boxes['1'], shelfId: 'unshelved' } },
+    });
+    await waitFor(() => expect(result.current.query.perShelf.unshelved).toHaveLength(1));
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces failed writes and retains the successful cached snapshot', async () => {
+    const { wrapper } = harness();
+    const { result } = renderHook(() => ({ query: useLibrary(), save: useSaveLibrary() }), { wrapper });
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    service.saveLibrary.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => {
+      await expect(
+        result.current.save.mutateAsync({ base: library, next: { games: {}, boxes: {} } }),
+      ).rejects.toThrow('offline');
+    });
+    expect(result.current.query.data).toEqual(library);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the promos container identity, label and measurements when moving shelves', async () => {
+    service.getLibrary.mockResolvedValue(promosLibrary);
+    const { wrapper } = harness();
+    const { result } = renderHook(() => ({ query: useQueryShelvedGames(), save: useMutateShelvedGames() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    const entry = result.current.query.response.promos;
+    await act(async () => {
+      await result.current.save.mutateAsync({ promos: { ...entry, shelfId: 'unshelved' } });
+    });
+    expect(service.saveLibrary).toHaveBeenCalledWith(promosLibrary, {
+      games: promosLibrary.games,
+      boxes: { promos: { ...promosLibrary.boxes.promos, shelfId: 'unshelved' } },
+    });
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
 });

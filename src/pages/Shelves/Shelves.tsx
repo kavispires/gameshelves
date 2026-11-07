@@ -2,14 +2,17 @@ import { App, Layout, Modal, Select, Table, Typography } from 'antd';
 import { GameCover, ShelvesSVG } from 'components';
 import { LoadingPage } from 'components/LoadingPage';
 import { useMutateShelvedGames, useQueryShelvedGames } from 'hooks';
+import { useLibrary } from 'hooks/useLibrary';
 import { cloneDeep, orderBy } from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
-import { SEPARATOR, SHELVES_IDS } from 'utils/constants';
+import { Link } from 'react-router-dom';
+import { SHELVES_IDS } from 'utils/constants';
 
 export function Shelves() {
   const { isLoading, boxedGames, perShelf, response } = useQueryShelvedGames();
   const { notification } = App.useApp();
   const mutateShelvedGames = useMutateShelvedGames();
+  const { data: library } = useLibrary();
   const [activeShelf, setActiveShelf] = useState<ShelfId>('');
   const [onShelf, setOnShelf] = useState<BooleanDictionary>({});
 
@@ -18,12 +21,12 @@ export function Shelves() {
     Object.keys(entries).forEach((key) => {
       if (entries[key]) {
         newShelvedGames[key].shelfId = shelfId;
-      } else {
+      } else if (newShelvedGames[key].shelfId === shelfId) {
         newShelvedGames[key].shelfId = 'unshelved';
       }
     });
 
-    mutateShelvedGames.mutate(newShelvedGames);
+    mutateShelvedGames.mutate(newShelvedGames, { onSuccess: () => setActiveShelf('') });
   };
 
   useEffect(() => {
@@ -54,7 +57,9 @@ export function Shelves() {
   const boxes = useMemo(
     () =>
       orderBy(
-        Object.keys(onShelf).map((gameId) => boxedGames[gameId]),
+        Object.keys(onShelf)
+          .filter((gameId) => onShelf[gameId] && boxedGames[gameId])
+          .map((gameId) => boxedGames[gameId]),
         ['name'],
       ),
     [onShelf, boxedGames],
@@ -66,7 +71,6 @@ export function Shelves() {
   };
   const handleSave = () => {
     onSaveShelves(activeShelf, onShelf);
-    setActiveShelf('');
   };
 
   if (isLoading) {
@@ -93,10 +97,18 @@ export function Shelves() {
         onOk={handleSave}
         okText="Save Shelf"
         onCancel={handleCancel}
+        confirmLoading={mutateShelvedGames.isPending}
+        okButtonProps={{ disabled: Boolean(library?.legacy) }}
+        cancelButtonProps={{ disabled: mutateShelvedGames.isPending }}
         closable={false}
         mask={{ closable: false }}
       >
-        <AddGameToShelf boxedGames={boxedGames} updateOnShelf={updateOnShelf} onShelf={onShelf} />
+        <AddGameToShelf
+          boxedGames={boxedGames}
+          updateOnShelf={updateOnShelf}
+          onShelf={onShelf}
+          disabled={Boolean(library?.legacy) || mutateShelvedGames.isPending}
+        />
         <InShelfGamesTable games={boxes} />
       </Modal>
     </Layout.Content>
@@ -119,6 +131,7 @@ function InShelfGamesTable({ games }: InShelfGamesTableProps) {
       title: 'Title',
       dataIndex: 'name',
       key: 'name',
+      render: (name: string, entry: ShelfEntry) => <Link to={`/shelves/${entry.id}`}>{name}</Link>,
     },
     {
       title: 'Box Size',
@@ -127,33 +140,34 @@ function InShelfGamesTable({ games }: InShelfGamesTableProps) {
     },
   ];
 
-  return <Table rowKey="id" dataSource={games} columns={columns} size="small" />;
+  return <Table rowKey="id" dataSource={games} columns={columns} size="small" scroll={{ x: true }} />;
 }
 
 type AddGameToShelfProps = {
   boxedGames: Record<ShelfEntryId, ShelfEntry>;
   updateOnShelf: (action: 'add' | 'remove', id: ShelfEntryId) => void;
   onShelf: BooleanDictionary;
+  disabled: boolean;
 };
 
-function AddGameToShelf({ boxedGames, updateOnShelf, onShelf }: AddGameToShelfProps) {
+function AddGameToShelf({ boxedGames, updateOnShelf, onShelf, disabled }: AddGameToShelfProps) {
   const defaultKeys = useMemo(
     () =>
       Object.keys(onShelf).reduce((acc: string[], id) => {
         if (onShelf[id]) {
-          acc.push(`${boxedGames[id].id}${SEPARATOR}${boxedGames[id].name}`);
+          acc.push(id);
         }
         return acc;
       }, []),
-    [onShelf, boxedGames],
+    [onShelf],
   );
 
   const sortedBoxedGames = useMemo(() => orderBy(Object.values(boxedGames), ['name']), [boxedGames]);
 
   const handleChange = (gameKeys: string[]) => {
-    gameKeys.forEach((key) => {
-      updateOnShelf('add', key.split(SEPARATOR)[0]);
-    });
+    for (const id of new Set([...Object.keys(onShelf), ...gameKeys])) {
+      updateOnShelf(gameKeys.includes(id) ? 'add' : 'remove', id);
+    }
   };
 
   return (
@@ -163,9 +177,11 @@ function AddGameToShelf({ boxedGames, updateOnShelf, onShelf }: AddGameToShelfPr
       style={{ width: '100%' }}
       placeholder="Add game to shelf"
       onChange={handleChange}
-      defaultValue={defaultKeys}
+      value={defaultKeys}
+      disabled={disabled}
+      aria-label="Games on shelf"
       options={sortedBoxedGames.map((game) => ({
-        value: `${game.id}${SEPARATOR}${game.name}`,
+        value: game.id,
         label: game.name,
       }))}
     />

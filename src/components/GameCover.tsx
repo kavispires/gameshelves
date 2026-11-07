@@ -13,7 +13,7 @@ export function GameCover({ id, type = 'thumbnail', name, width, ...rest }: Game
   const { getImages } = useQueryImages();
   return (
     <Image
-      src={getImages(id)[type]}
+      src={getImages(id)[type] || URLS.BGG_NO_IMAGE}
       width={width}
       fallback={URLS.BGG_NO_IMAGE}
       title={`Cover for: ${name}`}

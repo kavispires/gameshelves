@@ -6,9 +6,10 @@ This app tracks a household's board games and their physical shelf/box locations
 one global collection shared by authenticated accounts, not per-user libraries or a social network.
 Keep existing workflows and appearance unless the task explicitly changes them.
 
-Read `README.md` for setup, authentication, deployment, and import behavior. Read `package.json`,
-`.nvmrc`, and the relevant configuration files for current scripts, dependencies, and runtime requirements.
-Use Yarn Classic and the existing lockfile.
+Read `README.md` for the app's purpose, current features, sync behavior, and stored data.
+For development, read `package.json`, `.nvmrc`, and the relevant configuration files for scripts,
+dependencies, and runtime requirements; use `.env.example` for environment variables and
+`firestore.rules` for database access rules. Use Yarn Classic and the existing lockfile.
 
 ## React and TypeScript
 
@@ -50,10 +51,16 @@ Use Yarn Classic and the existing lockfile.
 - Any authenticated account can access the same global data. Introduce owner checks, signup,
   or per-user collections only when explicitly requested.
 - Keep SDK persistence operations in `src/services/firebase.ts` and remote-data orchestration
-  in TanStack Query hooks. Reuse keys from `src/hooks/queryKeys.ts` and invalidate affected keys
-  after successful mutations.
-- Preserve the current document paths and merge/replacement semantics. Partial saves merge;
-  full shelf replacement must still support deletion. Create fresh write batches for retries.
+  in TanStack Query hooks. Use the shared library key from `src/hooks/queryKeys.ts`, session-long
+  caching, and `setQueryData` after successful saves rather than invalidating/refetching.
+- Persist the catalog and physical boxes in `general/catalog` and `general/boxes` together,
+  using matching revisions and transaction checks against the approved snapshot. Keep imports
+  separate from physical organization; CSV refreshes must preserve manual fields.
+- Legacy records are read-only migration sources, not active write targets. Migrate only from
+  an explicitly confirmed Settings import; preserve archives until cleanup is separately approved.
+- Enforce the 800 KiB document budget using Firestore's storage-size calculation, not JSON length.
+  Keep the bulk-map index exemptions in `firestore.indexes.json`; rules/index changes require
+  manual application and must not be described as already deployed.
 - Validate Firestore/import data at entry points using the existing guards. Preserve immutable
   normalization of legacy numeric IDs; reads must not rewrite stored data.
 - Surface permission, network, parsing, and mutation errors. Missing aggregate documents may
@@ -64,7 +71,7 @@ Use Yarn Classic and the existing lockfile.
 - Follow `.env.example` and the existing `VITE_FIREBASE_*` configuration. Client environment values
   are public; split API-key assembly is a compatibility convention, not access control.
 - `firestore.rules` is supplied for manual publication in Firebase Console. Frontend gating does
-  not enforce database permissions or hide the global dump in public assets.
+  not enforce database permissions.
 
 ## Validation and delivery
 

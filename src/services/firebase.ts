@@ -6,15 +6,20 @@ import {
   signInWithEmailAndPassword,
   type UserCredential,
 } from 'firebase/auth';
-import { doc, type Firestore, getDoc, getFirestore, setDoc, writeBatch } from 'firebase/firestore';
 import {
-  isGameEntry,
-  isGameImages,
-  isRecord,
-  isShelfEntry,
-  normalizeLegacyId,
-  normalizeShelfEntry,
-} from 'utils/guards';
+  collection,
+  doc,
+  type Firestore,
+  getDoc,
+  getDocs,
+  getFirestore,
+  runTransaction,
+} from 'firebase/firestore';
+import { isEqual } from 'lodash';
+import { GAME_TYPES } from 'utils/constants';
+import { isGameImages, isRecord, isShelfEntry, normalizeShelfEntry } from 'utils/guards';
+import { libraryDocuments, readLibrary } from 'utils/library';
+import type { LegacyGame, Library, LibraryContent } from '../types/library';
 
 function required(name: keyof ImportMetaEnv): string {
   const value = import.meta.env[name];
@@ -58,7 +63,15 @@ async function getDictionary<T>(
 ): Promise<Record<string, T>> {
   const snapshot = await getDoc(doc(firestore, 'general', id));
   if (!snapshot.exists()) return {};
-  const data: unknown = snapshot.data();
+  return readDictionary(id, snapshot.data(), isEntry, normalize);
+}
+
+function readDictionary<T>(
+  id: string,
+  data: unknown,
+  isEntry: (value: unknown) => value is T,
+  normalize?: (value: unknown) => unknown,
+): Record<string, T> {
   if (!isRecord(data)) throw new Error(`Invalid Firestore document: general/${id}`);
   const result: Record<string, T> = {};
   for (const [key, value] of Object.entries(data)) {
@@ -72,35 +85,84 @@ async function getDictionary<T>(
 export const getShelvedGames = () => getDictionary('shelved-games', isShelfEntry, normalizeShelfEntry);
 export const getImages = () => getDictionary('images', isGameImages);
 
-export async function getGame(id: GameId): Promise<GameEntry> {
-  const snapshot = await getDoc(doc(firestore, 'games', id));
-  if (!snapshot.exists()) throw new Error(`Game not found: ${id}`);
-  const stored: unknown = snapshot.data();
-  // The original CSV converter saved numeric game IDs despite the string domain type.
-  const data = isRecord(stored) ? { ...stored, id: normalizeLegacyId(stored.id) } : stored;
-  if (!isGameEntry(data)) throw new Error(`Invalid game document: ${id}`);
-  return data;
-}
-
-export function saveShelvedGames(data: Record<string, ShelfEntry>, reset = false) {
-  return setDoc(doc(firestore, 'general', 'shelved-games'), data, { merge: !reset });
-}
-
-export function saveImages(data: Record<string, GameImages>) {
-  return setDoc(doc(firestore, 'general', 'images'), data, { merge: true });
-}
-
-export function saveGame(id: GameId, data: GameEntry) {
-  return setDoc(doc(firestore, 'games', id), data, { merge: true });
-}
-
-export async function saveGames(games: GameEntry[]): Promise<void> {
-  // Each attempt gets fresh batches; Firestore permits at most 500 writes per batch.
-  for (let offset = 0; offset < games.length; offset += 500) {
-    const batch = writeBatch(firestore);
-    for (const game of games.slice(offset, offset + 500)) {
-      batch.set(doc(firestore, 'games', game.id), game);
+/** Explicit first-import enrichment only, never a normal application-load query. */
+export async function getLegacyGames(): Promise<Record<string, LegacyGame>> {
+  const snapshot = await getDocs(collection(firestore, 'games'));
+  const games: Record<string, LegacyGame> = {};
+  for (const entry of snapshot.docs) {
+    const data: unknown = entry.data();
+    const type = isRecord(data) ? GAME_TYPES.find((type) => type === data.type) : undefined;
+    if (
+      !/^[1-9]\d*$/.test(entry.id) ||
+      !isRecord(data) ||
+      String(data.id) !== entry.id ||
+      typeof data.name !== 'string' ||
+      !data.name.trim() ||
+      !type ||
+      !isGameImages(data)
+    ) {
+      throw new Error(`Migration blocked: invalid legacy game ${entry.id}. Resolve it before importing.`);
     }
-    await batch.commit();
+    const images: GameImages = data;
+    games[entry.id] = {
+      id: entry.id,
+      name: data.name,
+      type,
+      image: images.image ?? '',
+      thumbnail: images.thumbnail ?? '',
+    };
   }
+  return games;
+}
+
+/** Two reads after migration. Legacy documents are read only while migration is pending. */
+export async function getLibrary(): Promise<Library> {
+  const [catalog, boxes] = await Promise.all([
+    getDoc(doc(firestore, 'general', 'catalog')),
+    getDoc(doc(firestore, 'general', 'boxes')),
+  ]);
+  if (!catalog.exists() && !boxes.exists()) {
+    const [shelves, images] = await Promise.all([getShelvedGames(), getImages()]);
+    return { revision: null, games: {}, boxes: {}, legacy: { shelves, images } };
+  }
+  return readLibrary(catalog.data(), boxes.data());
+}
+
+/** Revision checks make the approved preview the exact snapshot being replaced. */
+export async function saveLibrary(expected: Library, content: LibraryContent): Promise<Library> {
+  const revision = crypto.randomUUID();
+  const documents = libraryDocuments(content, revision);
+  const catalogRef = doc(firestore, 'general', 'catalog');
+  const boxesRef = doc(firestore, 'general', 'boxes');
+  await runTransaction(firestore, async (transaction) => {
+    const [catalog, boxes] = await Promise.all([transaction.get(catalogRef), transaction.get(boxesRef)]);
+    if (expected.revision === null) {
+      if (catalog.exists() || boxes.exists() || !expected.legacy) {
+        throw new Error('The library changed. Refresh the library and rebuild the preview.');
+      }
+      const [shelves, images] = await Promise.all([
+        transaction.get(doc(firestore, 'general', 'shelved-games')),
+        transaction.get(doc(firestore, 'general', 'images')),
+      ]);
+      const legacy = {
+        shelves: shelves.exists()
+          ? readDictionary('shelved-games', shelves.data(), isShelfEntry, normalizeShelfEntry)
+          : {},
+        images: images.exists() ? readDictionary('images', images.data(), isGameImages) : {},
+      };
+      if (!isEqual(expected.legacy, legacy)) {
+        throw new Error(
+          'Legacy organization changed. Refresh the library and rebuild the migration preview.',
+        );
+      }
+    } else {
+      const current = readLibrary(catalog.data(), boxes.data());
+      if (current.revision !== expected.revision) {
+        throw new Error('The library changed. Refresh the library and rebuild the preview.');
+      }
+    }
+    transaction.set(catalogRef, documents.catalog);
+    transaction.set(boxesRef, documents.boxes);
+  });
+  return { ...content, revision };
 }

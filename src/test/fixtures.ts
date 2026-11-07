@@ -1,4 +1,5 @@
 import type { BGGCollectionJson } from '../types/bgg';
+import type { CatalogGame, Library } from '../types/library';
 
 export const shelfEntry: ShelfEntry = {
   id: '1',
@@ -96,4 +97,48 @@ export const xmlRow = {
   '@subtype': 'boardgame',
   image: 'https://example.com/image.jpg',
   thumbnail: 'https://example.com/thumbnail.jpg',
+};
+
+export const catalogGame: CatalogGame = {
+  id: '1',
+  name: 'Test Game',
+  status: 'OWN',
+  year: 2020,
+  weight: 2,
+  minPlayerCount: 1,
+  maxPlayerCount: 4,
+  bestWith: [2],
+  recommendedPlayerCount: [1, 2, 3, 4],
+  minPlaytime: 30,
+  maxPlaytime: 60,
+  image: 'https://example.com/image.jpg',
+  thumbnail: 'https://example.com/thumbnail.jpg',
+  languageDependence: 'None',
+  type: 'base',
+  bggType: 'base',
+};
+
+export const library: Library = {
+  revision: 'revision-1',
+  games: { '1': catalogGame },
+  boxes: {
+    '1': { id: '1', contains: ['1'], shelfId: 'ew-cl-0', size: 'regular', updatedAt: 1 },
+  },
+};
+
+export const promosLibrary: Library = {
+  revision: 'revision-promos',
+  games: { '1': { ...catalogGame, type: 'promo' } },
+  boxes: {
+    promos: {
+      id: 'promos',
+      mainGameId: null,
+      name: 'Promos shoe box',
+      contains: ['1'],
+      shelfId: 'ew-cl-0',
+      size: 'large',
+      dimensions: { width: 300, height: 110, depth: 200 },
+      updatedAt: 1,
+    },
+  },
 };
