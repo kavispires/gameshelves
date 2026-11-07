@@ -29,6 +29,8 @@ function measuredRegion(id: ShelfId, x: number, y: number): ShelfRegion {
 }
 
 export const TV_SHELF_DIMENSIONS = { width: 1473.2, height: 838.2, depth: 406.4 };
+const garage = SHELVES_IDS['garage-container'].dimensions;
+const bags = SHELVES_IDS['board-game-bags'].dimensions;
 
 export const shelfRegions = {
   east: [
@@ -102,6 +104,19 @@ export const shelfRegions = {
     measuredRegion('tv-cl-1', 121.6, 443),
     measuredRegion('tv-cr-0', 751.6, 245),
     measuredRegion('tv-cr-1', 751.6, 443),
+  ],
+  garage: [
+    {
+      ...measuredRegion('garage-container', 0, 0),
+      bounds: { x: 50, y: 110, width: garage.width - 100, height: garage.height - 160 },
+      activeFill: '#8ab17d',
+    },
+  ],
+  bags: [
+    {
+      ...measuredRegion('board-game-bags', 0, 0),
+      bounds: { x: 30, y: 115, width: bags.width - 60, height: bags.height - 140 },
+    },
   ],
   unshelved: [
     {

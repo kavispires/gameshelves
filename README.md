@@ -45,7 +45,7 @@ Dimensions are optional for now. Enter all three positive measurements of the cl
 width, height and depth. Shelving does not yet require dimensions or calculate whether a box fits.
 A box marked `unshelved` exists but has no assigned shelf.
 
-The shelf illustrations adapt to your screen: separate East, West, TV and unshelved sections
+The shelf illustrations adapt to your screen: separate East, West, TV, unshelved, garage and bag sections
 sit side by side on wide screens, use two columns on tablets and stack on phones.
 Select a compartment in **Shelves**, or use its location picker on smaller screens, to open
 that location's `/shelves/:shelfId` page. **Add boxes** moves existing boxes into that shelf.
@@ -55,6 +55,11 @@ data column: box, shelf, size, width, height, depth, game count and contents.
 Location dropdowns save moves immediately. **Remove from shelf** asks for confirmation and
 moves the box to unshelved; it never deletes the box or its contents.
 The TV cabinet has four game compartments; its two open equipment cubbies are not game locations.
+**Garage container** (`garage-container`) and **Board game bags** (`board-game-bags`) each act as
+one storage location, with their own illustrations and the same box-placement controls.
+Their estimated dimensions are **80 x 50 x 50 cm** and **80 x 30 x 30 cm**, respectively
+(width x height x depth). The two bags share one storage location.
+These are estimates only; the app does not enforce whether boxes fit.
 The unshelved pile counts physical boxes, not every expansion or promo inside them.
 
 ## Importing from BGG

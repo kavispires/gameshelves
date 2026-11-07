@@ -59,6 +59,20 @@ async function navigate(path: string) {
 }
 
 describe('modernized routes and Ant Design controls', () => {
+  it('keeps overview furniture colors neutral and highlights only a selected shelf location', async () => {
+    await navigate('/');
+    const overview = await screen.findByRole('region', { name: 'Board game shelves' });
+    expect(overview.querySelectorAll('[data-active-shelf]')).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Shelves' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Select shelf ww-cl-0' }));
+    await screen.findByRole('heading', { name: 'West Wall Left Cabinet 0' });
+    const selected = screen.getByRole('region', { name: 'Board game shelves' });
+    expect(selected.querySelectorAll('[data-active-shelf]')).toHaveLength(1);
+    expect(selected.querySelector('[data-active-shelf]')).toHaveAttribute('data-active-shelf', 'ww-cl-0');
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
   it('uses separate game and box routes with the correct navigation selection', async () => {
     await navigate('/');
     expect(await screen.findByRole('heading', { name: 'Find Game' })).toBeInTheDocument();
@@ -162,38 +176,52 @@ describe('modernized routes and Ant Design controls', () => {
     );
   });
 
-  it('assigns a box to a TV compartment and shows the cached location without rereading the library', async () => {
-    await navigate('/shelves');
-    fireEvent.click(await screen.findByRole('button', { name: 'Select shelf tv-cl-0' }));
-    expect(await screen.findByRole('heading', { name: 'TV Shelf Upper Left' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add boxes' }));
-    const dialog = screen.getByRole('dialog');
-    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Boxes to add' }));
-    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Boxes to add' }), {
-      target: { value: 'Test' },
-    });
-    fireEvent.click(await screen.findByText('Test Game'));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Add boxes' }));
-    await waitFor(() =>
-      expect(service.saveLibrary).toHaveBeenCalledWith(library, {
-        games: library.games,
-        boxes: { '1': { ...library.boxes['1'], shelfId: 'tv-cl-0', updatedAt: expect.any(Number) } },
-      }),
-    );
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
-    const search = await screen.findByRole('combobox', { name: 'Find a game' });
-    fireEvent.change(search, { target: { value: 'Test' } });
-    fireEvent.mouseDown(search);
-    fireEvent.click(await screen.findByText('Test Game [base]'));
-    expect(await screen.findByText('Current location: TV Shelf Upper Left')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'TV shelf' })).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'East shelf' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'West shelf' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'Unshelved games' })).not.toBeInTheDocument();
-    expect(service.getLibrary).toHaveBeenCalledTimes(1);
-    expect(library.boxes['1'].shelfId).toBe('ew-cl-0');
-  });
+  it.each([
+    ['tv-cl-0', 'TV Shelf Upper Left', 'TV shelf'],
+    ['garage-container', 'Garage container', 'Garage container'],
+    ['board-game-bags', 'Board game bags', 'Board game bags'],
+  ])(
+    'assigns a box to %s and shows only its cached location without rereading',
+    async (shelfId, locationName, svgName) => {
+      await navigate('/shelves');
+      fireEvent.click(await screen.findByRole('button', { name: `Select shelf ${shelfId}` }));
+      expect(await screen.findByRole('heading', { name: locationName })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Add boxes' }));
+      const dialog = screen.getByRole('dialog');
+      fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Boxes to add' }));
+      fireEvent.change(within(dialog).getByRole('combobox', { name: 'Boxes to add' }), {
+        target: { value: 'Test' },
+      });
+      fireEvent.click(await screen.findByText('Test Game'));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Add boxes' }));
+      await waitFor(() =>
+        expect(service.saveLibrary).toHaveBeenCalledWith(library, {
+          games: library.games,
+          boxes: { '1': { ...library.boxes['1'], shelfId, updatedAt: expect.any(Number) } },
+        }),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
+      const search = await screen.findByRole('combobox', { name: 'Find a game' });
+      fireEvent.change(search, { target: { value: 'Test' } });
+      fireEvent.mouseDown(search);
+      fireEvent.click(await screen.findByText('Test Game [base]'));
+      expect(await screen.findByText(`Current location: ${locationName}`)).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: svgName })).toBeInTheDocument();
+      for (const other of [
+        'East shelf',
+        'West shelf',
+        'TV shelf',
+        'Unshelved games',
+        'Garage container',
+        'Board game bags',
+      ]) {
+        if (other !== svgName) expect(screen.queryByRole('img', { name: other })).not.toBeInTheDocument();
+      }
+      expect(service.getLibrary).toHaveBeenCalledTimes(1);
+      expect(library.boxes['1'].shelfId).toBe('ew-cl-0');
+    },
+  );
 
   it.each([
     { path: '/shelves/1', data: library, destination: '/boxes/1' },

@@ -2,7 +2,6 @@ import { Layout, Typography } from 'antd';
 import { SearchBar, ShelvesSVG } from 'components';
 
 import { useQueryShelvedGames } from 'hooks';
-import { SHELVES_IDS } from 'utils/constants';
 
 export function FindGame() {
   const { searchOptions, perShelf } = useQueryShelvedGames();
@@ -12,7 +11,7 @@ export function FindGame() {
       <Typography.Title level={1}>Find Game</Typography.Title>
       <SearchBar searchOptions={searchOptions} />
 
-      <ShelvesSVG active={Object.keys(SHELVES_IDS)} perShelf={perShelf} />
+      <ShelvesSVG perShelf={perShelf} />
     </Layout.Content>
   );
 }

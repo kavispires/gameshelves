@@ -211,5 +211,6 @@ interface ShelvesIds {
     id: ShelfId;
     description: string;
     dimensions: BoxDimensions;
+    dimensionsEstimated?: boolean;
   };
 }

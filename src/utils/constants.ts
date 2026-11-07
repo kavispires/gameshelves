@@ -612,6 +612,18 @@ export const SHELVES_IDS: ShelvesIds = {
     description: 'TV Shelf Lower Right',
     dimensions: { width: 600, height: 310, depth: 320 },
   },
+  'garage-container': {
+    id: 'garage-container',
+    description: 'Garage container',
+    dimensions: { width: 800, height: 500, depth: 500 },
+    dimensionsEstimated: true,
+  },
+  'board-game-bags': {
+    id: 'board-game-bags',
+    description: 'Board game bags',
+    dimensions: { width: 800, height: 300, depth: 300 },
+    dimensionsEstimated: true,
+  },
   unshelved: {
     id: 'unshelved',
     description: 'Yet to be shelved',

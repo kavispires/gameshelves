@@ -5,18 +5,22 @@ import { ShelvesSVG } from './ShelvesSVG';
 import { shelfRegions } from './shelfRegions';
 
 describe('independent shelf illustrations', () => {
-  it('renders four named SVGs and keeps the window inside the West illustration', () => {
+  it('renders independently named SVGs and keeps the window inside the West illustration', () => {
     const { container } = render(<ShelvesSVG />);
     expect(screen.getAllByRole('img').map((svg) => svg.getAttribute('aria-label'))).toEqual([
       'East shelf',
       'West shelf',
       'TV shelf',
       'Unshelved games',
+      'Garage container',
+      'Board game bags',
     ]);
     expect(container.querySelector('#window')?.closest('svg')).toBe(
       screen.getByRole('img', { name: 'West shelf' }),
     );
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('Estimated 80 x 50 x 50 cm (W x H x D)')).toBeInTheDocument();
+    expect(screen.getByText('Estimated 80 x 30 x 30 cm (W x H x D)')).toBeInTheDocument();
   });
 
   it.each([
@@ -24,6 +28,8 @@ describe('independent shelf illustrations', () => {
     ['ww-cl-0', 'West shelf'],
     ['tv-cr-1', 'TV shelf'],
     ['unshelved', 'Unshelved games'],
+    ['garage-container', 'Garage container'],
+    ['board-game-bags', 'Board game bags'],
   ])('shows only the containing illustration for location %s', (shelfId, label) => {
     const { container } = render(<ShelvesSVG shelfId={shelfId} active={[shelfId]} />);
     expect(screen.getAllByRole('img')).toEqual([screen.getByRole('img', { name: label })]);
@@ -35,7 +41,7 @@ describe('independent shelf illustrations', () => {
 
   it('owns each hit target exactly once, shares its highlight geometry and handles keyboard selection', () => {
     const onSelect = vi.fn();
-    const active = ['ew-cl-0', 'ww-cl-0', 'tv-cl-0', 'unshelved'];
+    const active = ['ew-cl-0', 'ww-cl-0', 'tv-cl-0', 'unshelved', 'garage-container', 'board-game-bags'];
     const { container } = render(<ShelvesSVG active={active} onSelectShelf={onSelect} />);
     const buttons = screen.getAllByRole('button');
     const ids = buttons.map((button) => button.getAttribute('data-shelf-id'));
@@ -52,7 +58,17 @@ describe('independent shelf illustrations', () => {
     fireEvent.click(within(tv).getByRole('button', { name: 'Select shelf tv-cl-0' }));
     fireEvent.keyDown(screen.getByRole('button', { name: 'Select shelf ww-cl-0' }), { key: 'Enter' });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Select shelf unshelved' }), { key: ' ' });
-    expect(onSelect.mock.calls).toEqual([['tv-cl-0'], ['ww-cl-0'], ['unshelved']]);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Select shelf garage-container' }), {
+      key: 'Enter',
+    });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Select shelf board-game-bags' }), { key: ' ' });
+    expect(onSelect.mock.calls).toEqual([
+      ['tv-cl-0'],
+      ['ww-cl-0'],
+      ['unshelved'],
+      ['garage-container'],
+      ['board-game-bags'],
+    ]);
   });
 
   it('draws contents in every furniture section and bounds large collections to their compartment', () => {
@@ -63,6 +79,8 @@ describe('independent shelf illustrations', () => {
           'ew-cl-0': boxes,
           'ww-cl-0': [shelfEntry],
           'tv-cl-0': [shelfEntry],
+          'garage-container': boxes,
+          'board-game-bags': boxes,
         }}
       />,
     );
@@ -70,25 +88,29 @@ describe('independent shelf illustrations', () => {
       ['east', 'ew-cl-0'],
       ['west', 'ww-cl-0'],
       ['tv', 'tv-cl-0'],
+      ['garage', 'garage-container'],
+      ['bags', 'board-game-bags'],
     ]) {
       const content = container.querySelector(`[data-content-shelf="${id}"]`);
       expect(content?.closest('figure')).toHaveAttribute('data-shelf-section', section);
       expect(content?.querySelectorAll('rect').length).toBeGreaterThan(0);
+      const region = Object.values(shelfRegions)
+        .flat()
+        .find((region) => region.id === id);
+      if (!region) throw new Error(`Missing shelf region: ${id}`);
+      const { bounds } = region;
+      for (const rect of content?.querySelectorAll('rect') ?? []) {
+        const x = Number(rect.getAttribute('x'));
+        const y = Number(rect.getAttribute('y'));
+        expect(x).toBeGreaterThanOrEqual(bounds.x);
+        expect(y).toBeGreaterThanOrEqual(bounds.y);
+        expect(x + Number(rect.getAttribute('width'))).toBeLessThanOrEqual(bounds.x + bounds.width);
+        expect(y + Number(rect.getAttribute('height'))).toBeLessThanOrEqual(bounds.y + bounds.height);
+      }
     }
     const content = container.querySelector('[data-content-shelf="ew-cl-0"]');
     expect(content).toHaveAttribute('data-box-count', '40');
     expect(content?.querySelectorAll('rect').length).toBeLessThan(boxes.length);
-    const region = shelfRegions.east.find((region) => region.id === 'ew-cl-0');
-    if (!region) throw new Error('Missing East cabinet region.');
-    const { bounds } = region;
-    for (const rect of content?.querySelectorAll('rect') ?? []) {
-      const x = Number(rect.getAttribute('x'));
-      const y = Number(rect.getAttribute('y'));
-      expect(x).toBeGreaterThanOrEqual(bounds.x);
-      expect(y).toBeGreaterThanOrEqual(bounds.y);
-      expect(x + Number(rect.getAttribute('width'))).toBeLessThanOrEqual(bounds.x + bounds.width);
-      expect(y + Number(rect.getAttribute('height'))).toBeLessThanOrEqual(bounds.y + bounds.height);
-    }
   });
 
   it('keeps an empty pile selectable and counts physical boxes rather than their contained games', () => {
