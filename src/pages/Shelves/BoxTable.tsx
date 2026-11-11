@@ -1,43 +1,111 @@
-import { InboxOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Table, type TableColumnsType, Typography } from 'antd';
+import { DeleteOutlined, EditOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Input,
+  Popconfirm,
+  Table,
+  type TableColumnsType,
+  type TableProps,
+  Typography,
+} from 'antd';
 import { GameCover } from 'components';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BOX_SIZES } from 'utils/constants';
+import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BOX_SIZES, SHELVES_IDS } from 'utils/constants';
 import { STORAGES, shelfName, storageForShelf } from 'utils/storage';
 
 type BoxTableProps = {
   boxes: ShelfEntry[];
   disabled: boolean;
   onEdit: (box: ShelfEntry) => void;
+  onDelete: (boxId: string) => void;
 };
 
 const contentsName = (box: ShelfEntry) => box.contains.map((game) => game.name).join(', ');
+const PAGE_SIZES = [10, 25, 50, 100];
+const SORT_KEYS = ['name', 'storage', 'shelf', 'size', 'items', 'contents'] as const;
+type SortKey = (typeof SORT_KEYS)[number];
+const isSortKey = (value: unknown): value is SortKey => SORT_KEYS.some((key) => key === value);
 
-export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
+  const [params, setParams] = useSearchParams();
+  const search = params.get('search') ?? '';
+  const pageSize = PAGE_SIZES.find((size) => String(size) === params.get('pageSize')) ?? 10;
+  const pageValue = Number(params.get('page') ?? 1);
+  const requestedPage = Number.isSafeInteger(pageValue) && pageValue > 0 ? pageValue : 1;
+  const requestedSort = params.get('sort');
+  const sortKey = requestedSort === 'none' ? null : isSortKey(requestedSort) ? requestedSort : 'name';
+  const sortOrder: 'ascend' | 'descend' | null = sortKey
+    ? params.get('order') === 'descend'
+      ? 'descend'
+      : 'ascend'
+    : null;
+  const storageFilters = params
+    .getAll('storage')
+    .filter((id) => STORAGES.some((storage) => storage.id === id));
+  const shelfFilters = params.getAll('shelf').filter((id) => Object.hasOwn(SHELVES_IDS, id));
+  const sizeFilters = params
+    .getAll('size')
+    .filter((size) => BOX_SIZES.some((value) => value !== 'none' && value === size));
   const query = search.trim().toLocaleLowerCase();
-  const filtered = boxes.filter((box) =>
-    `${box.name} ${contentsName(box)}`.toLocaleLowerCase().includes(query),
+  const filtered = boxes.filter(
+    (box) =>
+      `${box.name} ${contentsName(box)}`.toLocaleLowerCase().includes(query) &&
+      (!storageFilters.length || storageFilters.includes(storageForShelf(box.shelfId).id)) &&
+      (!shelfFilters.length || shelfFilters.includes(box.shelfId)) &&
+      (!sizeFilters.length || sizeFilters.includes(box.box)),
   );
-  const dimensions: TableColumnsType<ShelfEntry> = (['width', 'height', 'depth'] as const).map(
-    (dimension) => ({
-      title: `${dimension[0].toUpperCase()}${dimension.slice(1)} (mm)`,
-      key: dimension,
-      dataIndex: ['dimensions', dimension],
-      width: 110,
-      sorter: (a, b) => (a.dimensions?.[dimension] ?? -1) - (b.dimensions?.[dimension] ?? -1),
-      render: (value: number | undefined) => value ?? '-',
-    }),
-  );
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(filtered.length / pageSize)));
+
+  useEffect(() => {
+    if (page === requestedPage) return;
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (page === 1) next.delete('page');
+        else next.set('page', String(page));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [page, requestedPage, setParams]);
+
+  function updateParams(changes: Record<string, string | string[] | undefined>) {
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        for (const [key, value] of Object.entries(changes)) {
+          next.delete(key);
+          if (Array.isArray(value)) {
+            for (const item of value) next.append(key, item);
+          } else if (value) next.set(key, value);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const onTableChange: NonNullable<TableProps<ShelfEntry>['onChange']> = (pagination, filters, sorter) => {
+    const sorting = Array.isArray(sorter) ? sorter[0] : sorter;
+    const sortedKey = sorting?.order && isSortKey(sorting.columnKey) ? sorting.columnKey : undefined;
+    updateParams({
+      page: pagination.current && pagination.current > 1 ? String(pagination.current) : undefined,
+      pageSize: pagination.pageSize && pagination.pageSize !== 10 ? String(pagination.pageSize) : undefined,
+      sort: sortedKey ?? 'none',
+      order: sortedKey ? (sorting?.order ?? undefined) : undefined,
+      storage: filters.storage?.map(String) ?? [],
+      shelf: filters.shelf?.map(String) ?? [],
+      size: filters.size?.map(String) ?? [],
+    });
+  };
   const columns: TableColumnsType<ShelfEntry> = [
     {
       title: 'Box',
       key: 'name',
       width: 220,
-      defaultSortOrder: 'ascend',
+      sortOrder: sortKey === 'name' ? sortOrder : null,
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (_, box) => (
         <div className="flex items-center gap-3">
@@ -62,10 +130,11 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
       key: 'storage',
       width: 140,
       sorter: (a, b) => storageForShelf(a.shelfId).name.localeCompare(storageForShelf(b.shelfId).name),
+      sortOrder: sortKey === 'storage' ? sortOrder : null,
       filters: STORAGES.filter((storage) =>
         boxes.some((box) => storageForShelf(box.shelfId).id === storage.id),
       ).map((storage) => ({ text: storage.name, value: storage.id })),
-      onFilter: (value, box) => storageForShelf(box.shelfId).id === value,
+      filteredValue: storageFilters,
       render: (_, box) => storageForShelf(box.shelfId).name,
     },
     {
@@ -73,12 +142,13 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
       key: 'shelf',
       width: 180,
       sorter: (a, b) => shelfName(a.shelfId).localeCompare(shelfName(b.shelfId)),
+      sortOrder: sortKey === 'shelf' ? sortOrder : null,
       filters: [...new Set(boxes.map((box) => box.shelfId))].map((id) => ({
         text: `${storageForShelf(id).name}: ${shelfName(id)}`,
         value: id,
       })),
       filterSearch: true,
-      onFilter: (value, box) => box.shelfId === value,
+      filteredValue: shelfFilters,
       render: (_, box) => <Link to={`/shelves/${box.shelfId}`}>{shelfName(box.shelfId)}</Link>,
     },
     {
@@ -87,15 +157,29 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
       dataIndex: 'box',
       width: 100,
       sorter: (a, b) => BOX_SIZES.indexOf(a.box) - BOX_SIZES.indexOf(b.box),
+      sortOrder: sortKey === 'size' ? sortOrder : null,
       filters: BOX_SIZES.filter((size) => size !== 'none').map((size) => ({ text: size, value: size })),
-      onFilter: (value, box) => box.box === value,
+      filteredValue: sizeFilters,
     },
-    ...dimensions,
     {
-      title: 'Games',
-      key: 'count',
+      title: 'Dimensions',
+      key: 'dimensions',
+      width: 180,
+      render: (_, box) =>
+        box.dimensions ? (
+          <span className="whitespace-nowrap">
+            {box.dimensions.width} x {box.dimensions.height} x {box.dimensions.depth} mm
+          </span>
+        ) : (
+          '-'
+        ),
+    },
+    {
+      title: 'Items',
+      key: 'items',
       width: 80,
       sorter: (a, b) => a.contains.length - b.contains.length,
+      sortOrder: sortKey === 'items' ? sortOrder : null,
       render: (_, box) => box.contains.length,
     },
     {
@@ -103,6 +187,7 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
       key: 'contents',
       width: 220,
       sorter: (a, b) => contentsName(a).localeCompare(contentsName(b)),
+      sortOrder: sortKey === 'contents' ? sortOrder : null,
       render: (_, box) => (
         <ul className="space-y-1">
           {box.contains.map((game) => (
@@ -117,16 +202,38 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
     {
       title: 'Actions',
       key: 'actions',
-      width: 80,
+      width: 112,
       render: (_, box) => (
-        <Button
-          size="small"
-          disabled={disabled}
-          aria-label={`Edit location for ${box.name}`}
-          onClick={() => onEdit(box)}
-        >
-          Edit
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            style={{ minWidth: 44, minHeight: 44 }}
+            disabled={disabled}
+            title="Edit location"
+            aria-label={`Edit location for ${box.name}`}
+            onClick={() => onEdit(box)}
+          />
+          <Popconfirm
+            title={`Delete ${box.name}?`}
+            description="The box will be deleted. Its items will remain in the catalog, unassigned to a box."
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true, disabled }}
+            disabled={disabled}
+            onConfirm={() => onDelete(box.id)}
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              style={{ minWidth: 44, minHeight: 44 }}
+              title="Delete box"
+              aria-label={`Delete box ${box.name}`}
+              disabled={disabled}
+            />
+          </Popconfirm>
+        </div>
       ),
     },
   ];
@@ -142,8 +249,7 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
           allowClear
           value={search}
           onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
+            updateParams({ search: event.target.value || undefined, page: undefined });
           }}
         />
         <Typography.Text type="secondary">Edit a box to choose its storage and shelf.</Typography.Text>
@@ -153,18 +259,15 @@ export function BoxTable({ boxes, disabled, onEdit }: BoxTableProps) {
         dataSource={filtered}
         columns={columns}
         size="small"
-        scroll={{ x: 1350 }}
+        scroll={{ x: 1232 }}
         pagination={{
           current: page,
           pageSize,
           showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
+          pageSizeOptions: PAGE_SIZES,
           showTotal: (total) => `${total} ${total === 1 ? 'box' : 'boxes'}`,
         }}
-        onChange={(pagination) => {
-          setPage(pagination.current ?? 1);
-          setPageSize(pagination.pageSize ?? 10);
-        }}
+        onChange={onTableChange}
       />
     </Card>
   );

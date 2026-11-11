@@ -32,14 +32,15 @@ const boxes: ShelfEntry[] = [
 
 function mount(data = boxes) {
   const onEdit = vi.fn();
+  const onDelete = vi.fn();
   render(
     <ConfigProvider theme={{ token: { motion: false } }}>
       <MemoryRouter>
-        <BoxTable boxes={data} disabled={false} onEdit={onEdit} />
+        <BoxTable boxes={data} disabled={false} onEdit={onEdit} onDelete={onDelete} />
       </MemoryRouter>
     </ConfigProvider>,
   );
-  return onEdit;
+  return { onEdit, onDelete };
 }
 
 function displayedBoxes() {
@@ -51,7 +52,7 @@ function displayedBoxes() {
 
 describe('physical box inventory table', () => {
   it('separates storage from shelf, filters each independently and opens Edit without moving a box', async () => {
-    const onEdit = mount();
+    const { onEdit } = mount();
     expect(screen.getByRole('link', { name: 'Left Cabinet 0' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Upper Left' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Edit location for Zulu box' }));
@@ -71,14 +72,14 @@ describe('physical box inventory table', () => {
     expect(displayedBoxes()).toEqual(['Zulu box']);
   });
 
-  it('searches contained games, sorts measurements numerically in both directions and filters sizes', async () => {
+  it('combines unsortable dimensions, sorts item counts and searches/filters the inventory', async () => {
     mount();
     expect(displayedBoxes()).toEqual(['Alpha box', 'Zulu box']);
-    fireEvent.click(screen.getByRole('columnheader', { name: /Width/ }));
-    expect(displayedBoxes()).toEqual(['Zulu box', 'Alpha box']);
-    fireEvent.click(screen.getByRole('columnheader', { name: /Width/ }));
-    expect(displayedBoxes()).toEqual(['Alpha box', 'Zulu box']);
-    fireEvent.click(screen.getByRole('columnheader', { name: /Games/ }));
+    expect(screen.getByText('300 x 80 x 200 mm')).toBeInTheDocument();
+    expect(screen.getByText('90 x 150 x 60 mm')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Dimensions' })).not.toHaveAttribute('aria-sort');
+    expect(screen.queryByRole('columnheader', { name: /Width|Height|Depth|Games/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('columnheader', { name: /Items/ }));
     expect(displayedBoxes()).toEqual(['Zulu box', 'Alpha box']);
     fireEvent.change(screen.getByRole('textbox', { name: 'Search boxes' }), {
       target: { value: 'hidden EXPANSION' },
@@ -90,6 +91,21 @@ describe('physical box inventory table', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: 'small' }));
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(displayedBoxes()).toEqual(['Zulu box']);
+  });
+
+  it('uses icon actions and only deletes a box after confirmation', async () => {
+    const { onEdit, onDelete } = mount();
+    const edit = screen.getByRole('button', { name: 'Edit location for Alpha box' });
+    expect(within(edit).getByRole('img', { name: 'edit' })).toBeInTheDocument();
+    fireEvent.click(edit);
+    expect(onEdit).toHaveBeenCalledWith(boxes[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete box Alpha box' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete box Alpha box' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledExactlyOnceWith(boxes[0].id);
   });
 
   it('resets pagination when searching a collection larger than one page', () => {

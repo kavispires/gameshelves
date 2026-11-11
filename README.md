@@ -50,11 +50,16 @@ sit side by side on wide screens, use two columns on tablets and stack on phones
 Select a compartment in **Shelves**, or use its location picker on smaller screens, to open
 that location's `/shelves/:shelfId` page. **Add boxes** moves existing boxes into that shelf.
 Switch the overview to **Table** to browse every physical box, including unshelved containers.
-Both tables let you search box/game names, filter by shelf or size, paginate and sort every
-data column: box, storage, shelf, size, width, height, depth, game count and contents.
-**Edit** opens a location dialog: choose the storage, click its shelf in the illustration,
+Both tables let you search box/game names, filter by storage, shelf or size, paginate and sort
+by box, storage, shelf, size, item count and contents. **Dimensions** shows width x height x depth
+in millimeters and is not sortable. **Items** counts the games inside each box.
+Table settings are kept in the URL, so browser Back restores your page, page size, search,
+filters, sorting and illustration/table view after visiting a box.
+The **Edit** icon opens a location dialog: choose the storage, click its shelf in the illustration,
 then **Save**. **Cancel** discards the selection without changing anything.
 Select **Unshelved** to remove a placement without deleting the box or its contents.
+The **Delete** icon requires confirmation and deletes only the physical box; its items remain
+in the catalog, unassigned to a box.
 The TV cabinet has four game compartments; its two open equipment cubbies are not game locations.
 **Garage container** (`garage-container`) and **Board game bags** (`board-game-bags`) each act as
 one storage location, with their own illustrations and the same box-placement controls.

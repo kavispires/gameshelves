@@ -5,7 +5,8 @@ import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SHELVES_IDS } from 'utils/constants';
-import { moveBoxes } from 'utils/library';
+import { moveBoxes, updateBox } from 'utils/library';
+import type { Library, LibraryContent } from '../../types/library';
 import { NotFound } from '../NotFound/NotFound';
 import { BoxLocationModal } from './BoxLocationModal';
 import { BoxTable } from './BoxTable';
@@ -50,23 +51,27 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
   const failure = error || save.error?.message;
   const editing = editingId ? boxedGames[editingId] : undefined;
 
-  function place(ids: string[], destination: string, onSuccess?: () => void) {
+  function changeLibrary(title: string, build: (base: Library) => LibraryContent, onSuccess?: () => void) {
     try {
       if (!library) throw new Error('The library is not loaded.');
-      const next = moveBoxes(library, ids, destination);
+      const next = build(library);
       setError('');
       save.mutate(
         { base: library, next },
         {
           onSuccess: () => {
-            notification.success({ title: 'Shelf placement saved' });
+            notification.success({ title });
             onSuccess?.();
           },
         },
       );
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to save shelf placement.');
+      setError(cause instanceof Error ? cause.message : 'Unable to save the library change.');
     }
+  }
+
+  function place(ids: string[], destination: string, onSuccess?: () => void) {
+    changeLibrary('Shelf placement saved', (base) => moveBoxes(base, ids, destination), onSuccess);
   }
 
   return (
@@ -92,7 +97,14 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
             aria-label="Shelf overview view"
             optionType="button"
             value={tableView ? 'table' : 'illustrations'}
-            onChange={(event) => setParams(event.target.value === 'table' ? { view: 'table' } : {})}
+            onChange={(event) =>
+              setParams((previous) => {
+                const next = new URLSearchParams(previous);
+                if (event.target.value === 'table') next.set('view', 'table');
+                else next.delete('view');
+                return next;
+              })
+            }
             options={[
               { label: 'Illustrations', value: 'illustrations' },
               { label: 'Table', value: 'table' },
@@ -108,7 +120,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
         />
       )}
       {failure && !adding && !editing && (
-        <Alert type="error" className="mb-4" title="Shelf placement not saved" description={failure} />
+        <Alert type="error" className="mb-4" title="Library change not saved" description={failure} />
       )}
       {shelfId && (
         <Select
@@ -143,6 +155,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
             save.reset();
             setEditingId(box.id);
           }}
+          onDelete={(id) => changeLibrary('Box deleted', (base) => updateBox(base, id, null))}
         />
       )}
       {editing && (

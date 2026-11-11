@@ -58,7 +58,100 @@ async function navigate(path: string) {
   );
 }
 
+function tableLibrary(count: number): Library {
+  const games = Object.fromEntries(
+    Array.from({ length: count }, (_, index) => {
+      const id = String(index + 1);
+      return [id, { ...library.games['1'], id, name: `Box ${id.padStart(2, '0')}` }];
+    }),
+  );
+  const boxes = Object.fromEntries(
+    Object.keys(games).map((id) => [
+      id,
+      { ...library.boxes['1'], id, contains: [id], shelfId: Number(id) <= 40 ? 'ew-cl-0' : 'tv-cl-0' },
+    ]),
+  );
+  return { ...library, games, boxes };
+}
+
 describe('modernized routes and Ant Design controls', () => {
+  it('restores table pagination, sorting, filters, search and view after browser Back', async () => {
+    service.getLibrary.mockResolvedValue(tableLibrary(60));
+    await navigate('/shelves?view=table&pageSize=25');
+    await screen.findByRole('table');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search boxes' }), { target: { value: 'Box' } });
+    const storage = screen.getByRole('columnheader', { name: /^Storage/ });
+    fireEvent.click(within(storage).getByRole('button', { name: 'filter' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'East shelf' }));
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    fireEvent.click(screen.getByRole('columnheader', { name: 'Box' }));
+    fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
+    const boxLinks = () =>
+      screen.getAllByRole('link').filter((link) => link.getAttribute('href')?.startsWith('#/boxes/'));
+    const before = boxLinks().map((link) => link.textContent);
+    const address = window.location.hash;
+    expect(before).toHaveLength(15);
+    fireEvent.click(boxLinks()[0]);
+    await screen.findByRole('heading', { name: 'Original box' });
+    await act(async () => {
+      window.history.back();
+    });
+    await waitFor(() => expect(window.location.hash).toBe(address));
+    await screen.findByRole('table');
+    expect(boxLinks().map((link) => link.textContent)).toEqual(before);
+    expect(screen.getByRole('textbox', { name: 'Search boxes' })).toHaveValue('Box');
+    expect(screen.getByRole('columnheader', { name: 'Box' })).toHaveAttribute('aria-sort', 'descending');
+    expect(screen.getByTitle('2')).toHaveClass('ant-pagination-item-active');
+    fireEvent.click(screen.getByRole('radio', { name: 'Illustrations' }));
+    expect(await screen.findByRole('group', { name: 'East shelf' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Table' }));
+    expect(boxLinks().map((link) => link.textContent)).toEqual(before);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { data: library, id: '1', name: 'Test Game' },
+    { data: promosLibrary, id: 'promos', name: 'Promos shoe box' },
+  ])(
+    'confirms deletion of $name, preserves catalog games and allows retry after failure',
+    async ({ data, id, name }) => {
+      service.getLibrary.mockResolvedValue(data);
+      await navigate('/shelves?view=table');
+      fireEvent.click(await screen.findByRole('button', { name: `Delete box ${name}` }));
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+      service.saveLibrary.mockRejectedValueOnce(new Error('Box deletion failed'));
+      fireEvent.click(screen.getByRole('button', { name: `Delete box ${name}` }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+      expect(await screen.findByText('Box deletion failed')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Delete box ${name}` })).toBeEnabled();
+      expect(data.boxes[id]).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: `Delete box ${name}` }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: `Delete box ${name}` })).not.toBeInTheDocument(),
+      );
+      expect(service.saveLibrary.mock.lastCall?.[1]).toEqual({ games: data.games, boxes: {} });
+      act(() => {
+        window.location.hash = '/games/1';
+      });
+      expect(await screen.findByText('Not assigned to a box.')).toBeInTheDocument();
+      expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('returns to the previous table page when deleting the last box on the last page', async () => {
+    service.getLibrary.mockResolvedValue(tableLibrary(11));
+    await navigate('/shelves?view=table&page=2');
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete box Box 11' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    await screen.findByRole('button', { name: 'Edit location for Box 01' });
+    await waitFor(() => expect(window.location.hash).toBe('#/shelves?view=table'));
+    expect(service.saveLibrary.mock.lastCall?.[1].games).toHaveProperty('11');
+    expect(service.saveLibrary.mock.lastCall?.[1].boxes).not.toHaveProperty('11');
+  });
+
   it('keeps overview furniture colors neutral and highlights only a selected shelf location', async () => {
     await navigate('/');
     const overview = await screen.findByRole('region', { name: 'Board game shelves' });
