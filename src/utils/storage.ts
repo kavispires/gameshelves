@@ -1,8 +1,8 @@
 import { SHELVES_IDS } from './constants';
 
 const definitions = [
-  { id: 'east', name: 'East shelf', prefix: 'ew-', shelfPrefix: 'East Wall ' },
-  { id: 'west', name: 'West shelf', prefix: 'ww-', shelfPrefix: 'West Wall ' },
+  { id: 'east', name: 'Wall East Shelf', prefix: 'ew-', shelfPrefix: 'East Wall ' },
+  { id: 'west', name: 'Window West Shelf', prefix: 'ww-', shelfPrefix: 'West Wall ' },
   { id: 'tv', name: 'TV shelf', prefix: 'tv-', shelfPrefix: 'TV Shelf ' },
   { id: 'garage', name: 'Garage container', prefix: 'garage-container', shelfPrefix: '' },
   { id: 'bags', name: 'Board game bags', prefix: 'board-game-bags', shelfPrefix: '' },

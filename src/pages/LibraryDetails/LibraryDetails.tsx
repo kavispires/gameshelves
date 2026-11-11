@@ -15,6 +15,7 @@ import { BackLink, GameCover, ShelvesSVG } from 'components';
 import { clearIcon, GameTypeIcon, saveIcon } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
+import { isEqual } from 'lodash';
 import {
   Boxes,
   CalendarDays,
@@ -26,6 +27,7 @@ import {
   Package,
   PackageMinus,
   PackagePlus,
+  Pencil,
   Ruler,
   Tags,
   Trash2,
@@ -36,9 +38,10 @@ import {
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BOX_SIZES, GAME_TYPES, SHELVES_IDS } from 'utils/constants';
-import { findBox, getBoxName, updateBox, validDimensions } from 'utils/library';
+import { findBox, getBoxName, moveBoxes, updateBox, validDimensions } from 'utils/library';
 import type { CatalogGame, GameBox, Library, LibraryContent } from '../../types/library';
 import { NotFound } from '../NotFound/NotFound';
+import { BoxLocationModal } from '../Shelves/BoxLocationModal';
 
 export function LibraryDetails({ kind }: { kind: 'game' | 'box' }) {
   const { id = '' } = useParams();
@@ -108,10 +111,17 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
   const [dimensions, setDimensions] = useState<Partial<BoxDimensions>>(ownBox?.dimensions ?? {});
   const [targetBox, setTargetBox] = useState<string>();
   const [error, setError] = useState('');
+  const [editingLocation, setEditingLocation] = useState(false);
   const save = useSaveLibrary();
   const assigned = new Set(Object.values(library.boxes).flatMap((box) => box.contains));
   const busy = save.isPending;
   const contents = draft?.mainGameId === null ? draft.contains : (draft?.contains.slice(1) ?? []);
+  const boxDirty = Boolean(
+    draft &&
+      (!isEqual(draft, ownBox) ||
+        !isEqual(dimensions, ownBox?.dimensions ?? {}) ||
+        (game && (type !== game.type || imageUrl.trim() !== savedImageUrl))),
+  );
 
   function persist(next: LibraryContent) {
     if (game) {
@@ -139,7 +149,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
   }
 
   function saveBox() {
-    if (!draft) return;
+    if (!draft || !boxDirty || busy) return;
     const values = [dimensions.width, dimensions.height, dimensions.depth];
     if (values.some((value) => value !== undefined) && !validDimensions(dimensions)) {
       setError('Enter all three positive dimensions in millimeters, or leave all three empty.');
@@ -160,6 +170,16 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       persist(edit());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to update organization.');
+    }
+  }
+
+  function saveLocation(boxId: string, shelfId: ShelfId) {
+    try {
+      const next = moveBoxes(library, [boxId], shelfId);
+      setError('');
+      save.mutate({ base: library, next }, { onSuccess: () => setEditingLocation(false) });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to save shelf placement.');
     }
   }
 
@@ -232,7 +252,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           )}
         </div>
       </header>
-      {(error || save.isError) && (
+      {!editingLocation && (error || save.isError) && (
         <Alert
           showIcon
           type="error"
@@ -438,7 +458,13 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                 </ul>
               )}
               <div className="flex flex-wrap gap-3 border-0 border-t border-solid border-paper pt-4">
-                <Button type="primary" icon={saveIcon} loading={busy} onClick={saveBox}>
+                <Button
+                  type="primary"
+                  icon={saveIcon}
+                  loading={busy}
+                  disabled={busy || !boxDirty}
+                  onClick={saveBox}
+                >
                   Save box
                 </Button>
                 {ownBox ? (
@@ -568,6 +594,19 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
               </span>
             </Typography.Title>
           }
+          extra={
+            <Button
+              icon={<Pencil />}
+              disabled={busy}
+              onClick={() => {
+                setError('');
+                save.reset();
+                setEditingLocation(true);
+              }}
+            >
+              Edit location
+            </Button>
+          }
         >
           <ShelvesSVG shelfId={containing.shelfId} active={[containing.shelfId]} perShelf={perShelf} />
           <Link to={`/shelves/${containing.shelfId}`}>
@@ -577,6 +616,20 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
             </span>
           </Link>
         </Card>
+      )}
+      {editingLocation && containing && (
+        <BoxLocationModal
+          box={{ name: getBoxName(containing, library.games), shelfId: containing.shelfId }}
+          perShelf={perShelf}
+          saving={busy}
+          error={error || save.error?.message}
+          onSave={(shelfId) => saveLocation(containing.id, shelfId)}
+          onCancel={() => {
+            setEditingLocation(false);
+            setError('');
+            save.reset();
+          }}
+        />
       )}
     </Layout.Content>
   );

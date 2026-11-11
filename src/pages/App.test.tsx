@@ -727,7 +727,7 @@ describe('modernized routes and Ant Design controls', () => {
     const firstRow = screen.getByRole('link', { name: 'Box 01' }).closest('tr');
     if (!firstRow) throw new Error('The game table row is missing.');
     expect(within(firstRow).getByText('base')).toBeInTheDocument();
-    expect(within(firstRow).getByRole('link', { name: 'East shelf' })).toHaveAttribute(
+    expect(within(firstRow).getByRole('link', { name: 'Wall East Shelf' })).toHaveAttribute(
       'href',
       '#/shelves?view=table&storage=east',
     );
@@ -1002,7 +1002,7 @@ describe('modernized routes and Ant Design controls', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search boxes' }), { target: { value: 'Box' } });
     const storage = screen.getByRole('columnheader', { name: /^Storage/ });
     fireEvent.click(within(storage).getByRole('button', { name: 'filter' }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'East shelf' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Wall East Shelf' }));
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     fireEvent.click(screen.getByRole('columnheader', { name: 'Box' }));
     fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
@@ -1023,7 +1023,7 @@ describe('modernized routes and Ant Design controls', () => {
     expect(screen.getByRole('columnheader', { name: 'Box' })).toHaveAttribute('aria-sort', 'descending');
     expect(screen.getByTitle('2')).toHaveClass('ant-pagination-item-active');
     fireEvent.click(screen.getByRole('radio', { name: 'Illustrations' }));
-    expect(await screen.findByRole('group', { name: 'East shelf' })).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Wall East Shelf' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('radio', { name: 'Table' }));
     expect(boxLinks().map((link) => link.textContent)).toEqual(before);
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
@@ -1189,6 +1189,67 @@ describe('modernized routes and Ant Design controls', () => {
   });
 
   it.each([
+    { path: '/games/1', base: library, boxId: '1' },
+    { path: '/games/2', base: treeLibrary(), boxId: '1' },
+    { path: '/boxes/promos', base: promosLibrary, boxId: 'promos' },
+  ])('edits the containing box location directly from $path', async ({ path, base, boxId }) => {
+    service.getLibrary.mockResolvedValue(base);
+    await navigate(path);
+    const heading = await screen.findByRole('heading', { name: 'On the shelf' });
+    expect(within(heading).queryByRole('button')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit location' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Edit location:/ });
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Storage' }));
+    fireEvent.click(await screen.findByText('TV shelf'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Select shelf tv-cl-0' }));
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.saveLibrary).toHaveBeenCalledWith(base, {
+      games: base.games,
+      boxes: {
+        ...base.boxes,
+        [boxId]: { ...base.boxes[boxId], shelfId: 'tv-cl-0', updatedAt: expect.any(Number) },
+      },
+    });
+    expect(screen.getByText('Current location: TV Shelf Upper Left')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View all boxes in this location' })).toHaveAttribute(
+      'href',
+      '#/shelves/tv-cl-0',
+    );
+    expect(window.location.hash).toBe(`#${path}`);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a game-page location edit without writing and retains failed placement for retry', async () => {
+    await navigate('/games/1');
+    async function selectUnshelved() {
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit location' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Storage' }));
+      fireEvent.click(await screen.findByText('Unshelved'));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Select shelf unshelved' }));
+      return dialog;
+    }
+    let dialog = await selectUnshelved();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    expect(screen.getByText('Current location: East Wall Left Cabinet 0')).toBeInTheDocument();
+    dialog = await selectUnshelved();
+    service.saveLibrary.mockRejectedValueOnce(new Error('Placement save failed'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText('Placement save failed')).toBeInTheDocument();
+    expect(within(dialog).getByText('Selected shelf: Yet to be shelved')).toBeInTheDocument();
+    expect(screen.getByText('Current location: East Wall Left Cabinet 0')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByText('Current location: Yet to be shelved')).toBeInTheDocument();
+    expect(service.saveLibrary.mock.lastCall?.[1].boxes['1'].shelfId).toBe('unshelved');
+  });
+
+  it.each([
     ['tv-cl-0', 'TV Shelf Upper Left', 'TV shelf'],
     ['garage-container', 'Garage container', 'Garage container'],
     ['board-game-bags', 'Board game bags', 'Board game bags'],
@@ -1220,8 +1281,8 @@ describe('modernized routes and Ant Design controls', () => {
       expect(await screen.findByText(`Current location: ${locationName}`)).toBeInTheDocument();
       expect(screen.getByRole('img', { name: svgName })).toBeInTheDocument();
       for (const other of [
-        'East shelf',
-        'West shelf',
+        'Wall East Shelf',
+        'Window West Shelf',
         'TV shelf',
         'Unshelved games',
         'Garage container',
@@ -1311,7 +1372,7 @@ describe('modernized routes and Ant Design controls', () => {
     fireEvent.click(await screen.findByRole('radio', { name: 'Table' }));
     expect(await screen.findByRole('table')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/shelves?view=table');
-    expect(screen.queryByRole('group', { name: 'East shelf' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Wall East Shelf' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Test Game' })[0]).toHaveAttribute('href', '#/boxes/1');
     async function selectUnshelved() {
       fireEvent.click(screen.getByRole('button', { name: 'Edit location for Test Game' }));
@@ -1519,19 +1580,14 @@ describe('modernized routes and Ant Design controls', () => {
     expect(screen.getByLabelText('Games in box')).toBeInTheDocument();
     expect(screen.queryByLabelText('Game classification')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Image URL')).not.toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'East shelf' })).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'West shelf' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Save box' }));
-    await waitFor(() =>
-      expect(service.saveLibrary).toHaveBeenCalledWith(promosLibrary, {
-        games: promosLibrary.games,
-        boxes: { promos: { ...promosLibrary.boxes.promos, updatedAt: expect.any(Number) } },
-      }),
-    );
+    expect(screen.getByRole('img', { name: 'Wall East Shelf' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Window West Shelf' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save box' })).toBeDisabled();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('link', { name: 'Test Game' }));
     expect(await screen.findByRole('heading', { name: 'Test Game' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Promos shoe box' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'East shelf' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Wall East Shelf' })).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'TV shelf' })).not.toBeInTheDocument();
     const savedBeforeRemoval = service.saveLibrary.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Remove from box' }));
@@ -1550,6 +1606,63 @@ describe('modernized routes and Ant Design controls', () => {
     });
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
+  it('only enables Save box for changes and becomes clean again after saving', async () => {
+    await navigate('/games/1');
+    let button = await screen.findByRole('button', { name: 'Save box' });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    const image = screen.getByLabelText('Image URL');
+    fireEvent.change(image, { target: { value: ` ${library.games['1'].image} ` } });
+    expect(button).toBeDisabled();
+    fireEvent.change(image, { target: { value: 'https://example.com/new-cover.jpg' } });
+    expect(button).toBeEnabled();
+    fireEvent.change(image, { target: { value: library.games['1'].image } });
+    expect(button).toBeDisabled();
+    const width = screen.getByLabelText('Width (mm)');
+    fireEvent.change(width, { target: { value: '300' } });
+    expect(button).toBeEnabled();
+    fireEvent.change(width, { target: { value: '' } });
+    expect(button).toBeDisabled();
+    fireEvent.change(image, { target: { value: 'https://example.com/new-cover.jpg' } });
+    service.saveLibrary.mockRejectedValueOnce(new Error('Box save failed'));
+    fireEvent.click(button);
+    expect(await screen.findByText('Box save failed')).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await waitFor(() => {
+      button = screen.getByRole('button', { name: 'Save box' });
+      expect(button).toBeDisabled();
+    });
+    expect(screen.getByLabelText('Image URL')).toHaveValue('https://example.com/new-cover.jpg');
+    expect(service.saveLibrary).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['Classification', 'expansion', 'base'],
+    ['Box size category', 'small', 'regular'],
+    ['Shelf location', 'East Wall Left Cabinet 1 (ew-cl-1)', 'East Wall Left Cabinet 0 (ew-cl-0)'],
+  ])(
+    'tracks %s changes and reverts when deciding whether Save box is enabled',
+    async (label, next, saved) => {
+      await navigate('/games/1');
+      const button = await screen.findByRole('button', { name: 'Save box' });
+      expect(button).toBeDisabled();
+      async function choose(value: string) {
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: label }));
+        const option = await screen.findByText(value, {
+          selector: '.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-content',
+        });
+        fireEvent.click(option);
+      }
+      await choose(next);
+      expect(button).toBeEnabled();
+      await choose(saved);
+      expect(button).toBeDisabled();
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps the additional-games search prefix after selecting multiple matching games', async () => {
     const user = userEvent.setup();
     service.getLibrary.mockResolvedValue({
@@ -1563,8 +1676,10 @@ describe('modernized routes and Ant Design controls', () => {
     });
     await navigate('/games/1');
     const search = await screen.findByRole('combobox', { name: 'Additional games in box' });
+    expect(screen.getByRole('button', { name: 'Save box' })).toBeDisabled();
     await user.type(search, 'Test expansion');
     await user.click(await screen.findByText('Test expansion one'));
+    expect(screen.getByRole('button', { name: 'Save box' })).toBeEnabled();
     expect(search).toHaveValue('Test expansion');
     expect(screen.queryByText('Unrelated game')).not.toBeInTheDocument();
     await user.click(await screen.findByText('Test expansion two'));

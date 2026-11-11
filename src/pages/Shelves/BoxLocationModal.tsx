@@ -7,7 +7,7 @@ import { SHELVES_IDS } from 'utils/constants';
 import { STORAGES, type StorageId, storageForShelf } from 'utils/storage';
 
 type BoxLocationModalProps = {
-  box: ShelfEntry;
+  box: Pick<ShelfEntry, 'name' | 'shelfId'>;
   perShelf: Record<ShelfId, ShelfEntry[]>;
   saving: boolean;
   error?: string;

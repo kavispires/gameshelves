@@ -26,9 +26,9 @@ const sections: Record<
   ShelfSectionId,
   { label: string; viewBox: string; artwork?: ReactNode; foreground?: ReactNode }
 > = {
-  east: { label: 'East shelf', viewBox: '-3 10 242 310', artwork: <EastShelf /> },
+  east: { label: 'Wall East Shelf', viewBox: '-3 10 242 310', artwork: <EastShelf /> },
   west: {
-    label: 'West shelf',
+    label: 'Window West Shelf',
     viewBox: '252 10 520 310',
     artwork: (
       <>

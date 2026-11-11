@@ -8,15 +8,15 @@ describe('independent shelf illustrations', () => {
   it('renders independently named SVGs and keeps the window inside the West illustration', () => {
     const { container } = render(<ShelvesSVG />);
     expect(screen.getAllByRole('img').map((svg) => svg.getAttribute('aria-label'))).toEqual([
-      'East shelf',
-      'West shelf',
+      'Wall East Shelf',
+      'Window West Shelf',
       'TV shelf',
       'Unshelved games',
       'Garage container',
       'Board game bags',
     ]);
     expect(container.querySelector('#window')?.closest('svg')).toBe(
-      screen.getByRole('img', { name: 'West shelf' }),
+      screen.getByRole('img', { name: 'Window West Shelf' }),
     );
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('Estimated 80 x 50 x 50 cm (W x H x D)')).toBeInTheDocument();
@@ -24,8 +24,8 @@ describe('independent shelf illustrations', () => {
   });
 
   it.each([
-    ['ew-cl-0', 'East shelf'],
-    ['ww-cl-0', 'West shelf'],
+    ['ew-cl-0', 'Wall East Shelf'],
+    ['ww-cl-0', 'Window West Shelf'],
     ['tv-cr-1', 'TV shelf'],
     ['unshelved', 'Unshelved games'],
     ['garage-container', 'Garage container'],
