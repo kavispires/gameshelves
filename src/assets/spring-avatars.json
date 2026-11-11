@@ -1,0 +1,252 @@
+[
+  {
+    "id": "spring-001-rabbit",
+    "name": "Rabbit",
+    "viewBox": "0 0 497 497"
+  },
+  {
+    "id": "spring-002-bee",
+    "name": "Bee",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-003-deer",
+    "name": "Deer",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-004-flower",
+    "name": "Flower",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-005-fox",
+    "name": "Fox",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-006-bear",
+    "name": "Bear",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-007-acorn",
+    "name": "Acorn",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-008-onion",
+    "name": "Onion",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-009-butterfly",
+    "name": "Butterfly",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-010-nest",
+    "name": "Nest",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-011-woman",
+    "name": "Woman",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-012-ice-cream",
+    "name": "Ice Cream",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-013-apple",
+    "name": "Apple",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-014-snail",
+    "name": "Snail",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-015-ladybug",
+    "name": "Ladybug",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-016-caterpillar",
+    "name": "Caterpillar",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-017-flower",
+    "name": "Flower",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-018-raccoon",
+    "name": "Raccoon",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-019-carrot",
+    "name": "Carrot",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-020-mushroom",
+    "name": "Mushroom",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-021-grill",
+    "name": "Grill",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-022-pig",
+    "name": "Pig",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-023-bear",
+    "name": "Bear",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-024-rainbow",
+    "name": "Rainbow",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-025-tree",
+    "name": "Tree",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-026-duck",
+    "name": "Duck",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-027-juice",
+    "name": "Juice",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-028-bird",
+    "name": "Bird",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-029-man",
+    "name": "Man",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-030-dragonfly",
+    "name": "Dragonfly",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-031-peach",
+    "name": "Peach",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-032-sheep",
+    "name": "Sheep",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-033-orange",
+    "name": "Orange",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-034-ant",
+    "name": "Ant",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-035-frog",
+    "name": "Frog",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-036-sun",
+    "name": "Sun",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-037-squirrel",
+    "name": "Squirrel",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-038-basket",
+    "name": "Basket",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-039-easter",
+    "name": "Easter",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-040-skunk",
+    "name": "Skunk",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-041-honeycomb",
+    "name": "Honeycomb",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-042-flamingo",
+    "name": "Flamingo",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-043-beetle",
+    "name": "Beetle",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-044-hedgehog",
+    "name": "Hedgehog",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-045-chicken",
+    "name": "Chicken",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-046-owl",
+    "name": "Owl",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-047-fairy",
+    "name": "Fairy",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-048-elephant",
+    "name": "Elephant",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-049-strawberry",
+    "name": "Strawberry",
+    "viewBox": "0 0 512 512"
+  },
+  {
+    "id": "spring-050-lion",
+    "name": "Lion",
+    "viewBox": "0 0 512 512"
+  }
+]

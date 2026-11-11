@@ -1,6 +1,7 @@
 import { App, Button, Card } from 'antd';
 import { GameCover } from 'components';
-import { CircleCheck, Save } from 'lucide-react';
+import { saveIcon } from 'components/icons';
+import { CircleCheck } from 'lucide-react';
 import { type ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,7 +37,7 @@ export function GameCard({ game, children, isMutated = false, save, saveResult }
             type="primary"
             size="small"
             danger
-            icon={<Save />}
+            icon={saveIcon}
             onClick={save}
             loading={saveResult.isPending}
           >

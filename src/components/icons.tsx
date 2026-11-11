@@ -22,6 +22,7 @@ import {
   type LucideIcon,
   PackageOpen,
   Puzzle,
+  Save,
   Sparkles,
   TriangleAlert,
   Wrench,
@@ -30,6 +31,7 @@ import {
 import type { MouseEventHandler } from 'react';
 
 export const clearIcon = <CircleX size={14} />;
+export const saveIcon = <Save />;
 const loader = <LoaderCircle className="motion-safe:animate-spin" />;
 
 export const iconConfig = {

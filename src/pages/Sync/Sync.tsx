@@ -1,10 +1,10 @@
 import { Alert, Button, Checkbox, Layout, Modal, Typography, Upload, type UploadFile } from 'antd';
+import { saveIcon } from 'components/icons';
 import { useLibrary, useSaveLibrary } from 'hooks/useLibrary';
 import {
   ClipboardCheck,
   FileSpreadsheet,
   RefreshCw,
-  Save,
   Settings,
   Trash2,
   Upload as UploadIcon,
@@ -217,7 +217,7 @@ export function Sync() {
         confirmLoading={save.isPending}
         cancelButtonProps={{ disabled: save.isPending }}
         okText="Confirm import"
-        okButtonProps={{ danger: Boolean(preview?.removed.length), icon: <Save /> }}
+        okButtonProps={{ danger: Boolean(preview?.removed.length), icon: saveIcon }}
         closable={!save.isPending}
         mask={{ closable: !save.isPending }}
       >

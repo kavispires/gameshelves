@@ -15,7 +15,7 @@ import {
   Typography,
 } from 'antd';
 import { GameCover } from 'components';
-import { boxExpandIcon, clearIcon, GameTypeIcon, tableIcons } from 'components/icons';
+import { boxExpandIcon, clearIcon, GameTypeIcon, saveIcon, tableIcons } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import {
@@ -29,7 +29,6 @@ import {
   MapPin,
   Package,
   PackageOpen,
-  PackagePlus,
   Search,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -461,7 +460,7 @@ export function FindGame() {
             Group in a box
           </Button>
           <Button
-            icon={<PackagePlus />}
+            icon={saveIcon}
             disabled={disabled || !allUnboxed}
             loading={save.isPending && !grouping}
             onClick={createBoxes}

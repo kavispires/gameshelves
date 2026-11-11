@@ -12,7 +12,7 @@ import {
   Typography,
 } from 'antd';
 import { BackLink, GameCover, ShelvesSVG } from 'components';
-import { clearIcon, GameTypeIcon } from 'components/icons';
+import { clearIcon, GameTypeIcon, saveIcon } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import {
@@ -27,7 +27,6 @@ import {
   PackageMinus,
   PackagePlus,
   Ruler,
-  Save,
   Tags,
   Trash2,
   TriangleAlert,
@@ -296,7 +295,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
             </Typography.Paragraph>
             {!draft && (
               <Button
-                icon={<Save />}
+                icon={saveIcon}
                 type="primary"
                 className="mt-4"
                 loading={busy}
@@ -440,13 +439,13 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                 </ul>
               )}
               <div className="flex flex-wrap gap-3 border-0 border-t border-solid border-paper pt-4">
-                <Button type="primary" icon={<Save />} loading={busy} onClick={saveBox}>
+                <Button type="primary" icon={saveIcon} loading={busy} onClick={saveBox}>
                   Save box
                 </Button>
                 {ownBox ? (
                   <Popconfirm
                     icon={<TriangleAlert className="text-warning" />}
-                    okButtonProps={{ icon: <Trash2 /> }}
+                    okButtonProps={{ icon: saveIcon }}
                     cancelButtonProps={{ icon: <X /> }}
                     title="Remove this box?"
                     description="All games in this box will become unassigned. No games will be deleted."
@@ -514,7 +513,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
               }))}
             />
             <Button
-              icon={<PackagePlus />}
+              icon={saveIcon}
               disabled={!targetBox || busy}
               onClick={() =>
                 runEdit(() => {
@@ -541,7 +540,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           title="Remove this game from its box?"
           description="The game will become unassigned. No games will be deleted."
           okText="Remove"
-          okButtonProps={{ danger: true, icon: <PackageMinus /> }}
+          okButtonProps={{ danger: true, icon: saveIcon }}
           disabled={busy}
           onConfirm={() =>
             runEdit(() =>

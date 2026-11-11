@@ -1,5 +1,6 @@
 import { Alert, App, Button, Layout, Modal, Radio, Select, Typography } from 'antd';
 import { BackLink, ShelvesSVG } from 'components';
+import { saveIcon } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { CircleCheck, Images, MapPin, PackagePlus, Table2 } from 'lucide-react';
@@ -206,7 +207,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
         open={adding}
         okText="Add boxes"
         confirmLoading={save.isPending}
-        okButtonProps={{ disabled: disabled || !selected.length, icon: <PackagePlus /> }}
+        okButtonProps={{ disabled: disabled || !selected.length, icon: saveIcon }}
         cancelButtonProps={{ disabled: save.isPending }}
         closable={!save.isPending}
         mask={{ closable: !save.isPending }}

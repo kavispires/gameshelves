@@ -7,8 +7,10 @@ import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAuthUser } from '../test/auth';
 import { csvRow, library, promosLibrary, shelfEntry } from '../test/fixtures';
+import type { Friend, FriendsState } from '../types/friends';
 import type { Library, LibraryContent } from '../types/library';
 import { URLS } from '../utils/constants';
+import { emptyInterests } from '../utils/friends';
 import { App } from './App';
 
 const service = vi.hoisted(() => ({
@@ -16,6 +18,8 @@ const service = vi.hoisted(() => ({
   signIn: vi.fn<(email: string, password: string) => Promise<void>>(),
   getLibrary: vi.fn<() => Promise<Library>>(),
   saveLibrary: vi.fn<(base: Library, next: LibraryContent) => Promise<Library>>(),
+  getFriends: vi.fn<() => Promise<FriendsState>>(),
+  saveFriend: vi.fn<(base: FriendsState, friend: Friend) => Promise<FriendsState>>(),
 }));
 vi.mock('services/firebase', () => service);
 
@@ -42,6 +46,11 @@ beforeEach(() => {
   });
   service.signIn.mockReset().mockResolvedValue();
   service.getLibrary.mockResolvedValue(library);
+  service.getFriends.mockResolvedValue({ revision: null, friends: {} });
+  service.saveFriend.mockImplementation(async (base, friend) => ({
+    revision: crypto.randomUUID(),
+    friends: { ...base.friends, [friend.id]: friend },
+  }));
   service.saveLibrary.mockImplementation(async (_base, next) => ({ ...next, revision: crypto.randomUUID() }));
   const getComputedStyle = window.getComputedStyle;
   vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => getComputedStyle(element));
@@ -109,6 +118,231 @@ async function filterGameColumn(name: RegExp, values: string[] | null) {
 }
 
 describe('modernized routes and Ant Design controls', () => {
+  it('adds and edits a friend with a sprite avatar and nullable preferences without rereading the list', async () => {
+    await navigate('/friends');
+    fireEvent.click(await screen.findByRole('button', { name: 'Add friend' }));
+    let dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('button', { name: 'Save friend' }).querySelector('.lucide-save'),
+    ).not.toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    expect(await within(dialog).findByText('Enter a name.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Choose an avatar.')).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), {
+      target: { value: '  Morgan  ' },
+    });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' }));
+    fireEvent.click(within(dialog).getByText('Engagement'));
+    fireEvent.click(
+      within(within(dialog).getByRole('radiogroup', { name: 'Cooperative' })).getByRole('radio', {
+        name: 'Yes',
+      }),
+    );
+    fireEvent.click(
+      within(within(dialog).getByRole('radiogroup', { name: 'Competitive' })).getByRole('radio', {
+        name: 'No',
+      }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByText('Morgan')).toBeInTheDocument();
+    expect(screen.getByText('2 / 26')).toBeInTheDocument();
+    const added = service.saveFriend.mock.lastCall?.[1];
+    expect(added).toMatchObject({
+      name: 'Morgan',
+      avatarId: 'spring-001-rabbit',
+      interests: { ...emptyInterests(), likesCooperative: true, likesCompetitive: false },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Morgan' }));
+    dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Morgan');
+    expect(within(dialog).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' })).toBeChecked();
+    fireEvent.click(within(dialog).getByText('Engagement'));
+    expect(
+      within(within(dialog).getByRole('radiogroup', { name: 'Cooperative' })).getByRole('radio', {
+        name: 'Yes',
+      }),
+    ).toBeChecked();
+    expect(
+      within(within(dialog).getByRole('radiogroup', { name: 'Competitive' })).getByRole('radio', {
+        name: 'No',
+      }),
+    ).toBeChecked();
+    fireEvent.click(
+      within(within(dialog).getByRole('radiogroup', { name: 'Cooperative' })).getByRole('radio', {
+        name: 'Not rated',
+      }),
+    );
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'Morgan edited' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.saveFriend.mock.lastCall?.[1]).toEqual({
+      ...added,
+      name: 'Morgan edited',
+      interests: { ...emptyInterests(), likesCompetitive: false },
+    });
+    expect(service.getFriends).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Add friend' }));
+    dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('');
+    expect(within(dialog).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' })).not.toBeChecked();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(service.saveFriend).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves failed friend drafts, blocks pending dismissal and updates the list after retry', async () => {
+    service.saveFriend.mockRejectedValueOnce(new Error('Friend write failed'));
+    await navigate('/friends');
+    fireEvent.click(await screen.findByRole('button', { name: 'Add friend' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Riley' } });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Bee (spring-002-bee)' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    expect(await within(dialog).findByText('Friend write failed')).toBeInTheDocument();
+    const original = service.saveFriend.mock.lastCall?.[1];
+    let finish!: () => void;
+    service.saveFriend.mockImplementationOnce(
+      (base, friend) =>
+        new Promise((resolve) => {
+          finish = () => resolve({ revision: 'saved', friends: { ...base.friends, [friend.id]: friend } });
+        }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    await waitFor(() => expect(service.saveFriend).toHaveBeenCalledTimes(2));
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(within(dialog).getByRole('radio', { name: 'Bee (spring-002-bee)' })).toBeDisabled();
+    fireEvent.keyDown(dialog, { key: 'Escape', keyCode: 27 });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await act(async () => finish());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.saveFriend.mock.lastCall?.[1]).toEqual(original);
+    expect(screen.getByText('Riley')).toBeInTheDocument();
+    expect(screen.getByText('0 / 26')).toBeInTheDocument();
+  });
+
+  it('disables and sorts used avatars last, keeps the current avatar available, and releases a changed avatar', async () => {
+    const owner = {
+      id: '00000000-0000-4000-8000-000000000001',
+      name: 'Owner',
+      avatarId: 'spring-001-rabbit',
+      interests: emptyInterests(),
+    };
+    const other = {
+      ...owner,
+      id: '00000000-0000-4000-8000-000000000002',
+      name: 'Other',
+      avatarId: 'spring-002-bee',
+    };
+    service.getFriends.mockResolvedValue({
+      revision: 'saved',
+      friends: { [owner.id]: owner, [other.id]: other },
+    });
+    await navigate('/friends');
+    fireEvent.click(await screen.findByRole('button', { name: 'Add friend' }));
+    let dialog = await screen.findByRole('dialog');
+    let picker = within(dialog).getByRole('radiogroup', { name: 'Avatar' });
+    let radios = within(picker).getAllByRole('radio');
+    expect(radios[0]).toHaveAccessibleName('Deer (spring-003-deer)');
+    expect(radios.slice(-2).map((radio) => radio.getAttribute('value'))).toEqual([
+      'spring-001-rabbit',
+      'spring-002-bee',
+    ]);
+    expect(within(picker).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' })).toBeDisabled();
+    expect(within(picker).getByRole('radio', { name: 'Bee (spring-002-bee)' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(service.saveFriend).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Owner' }));
+    dialog = await screen.findByRole('dialog');
+    picker = within(dialog).getByRole('radiogroup', { name: 'Avatar' });
+    const rabbit = within(picker).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' });
+    expect(rabbit).toBeEnabled();
+    expect(rabbit).toBeChecked();
+    radios = within(picker).getAllByRole('radio');
+    expect(radios[0]).toBe(rabbit);
+    expect(radios.at(-1)).toHaveAccessibleName('Bee (spring-002-bee)');
+    fireEvent.click(within(picker).getByRole('radio', { name: 'Deer (spring-003-deer)' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save friend' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Add friend' }));
+    dialog = await screen.findByRole('dialog');
+    picker = within(dialog).getByRole('radiogroup', { name: 'Avatar' });
+    expect(within(picker).getByRole('radio', { name: 'Rabbit (spring-001-rabbit)' })).toBeEnabled();
+    expect(
+      within(picker)
+        .getAllByRole('radio')
+        .slice(-2)
+        .map((radio) => radio.getAttribute('value')),
+    ).toEqual(['spring-002-bee', 'spring-003-deer']);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  });
+
+  it('loads friends only on its route and retries an explicit read failure', async () => {
+    await navigate('/');
+    await screen.findByRole('table');
+    expect(service.getFriends).not.toHaveBeenCalled();
+    service.getFriends.mockRejectedValueOnce(new Error('Friends read failed'));
+    fireEvent.click(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Friends' }),
+    );
+    expect(await screen.findByText('Friends read failed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('No friends yet. Add your first friend.')).toBeInTheDocument();
+  });
+
+  it('restores friend table search, sorting and pagination through Back without rereading', async () => {
+    const friends = Object.fromEntries(
+      Array.from({ length: 13 }, (_, index) => {
+        const id = `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
+        return [
+          id,
+          {
+            id,
+            name: `Friend ${String(index + 1).padStart(2, '0')}`,
+            avatarId: 'spring-001-rabbit',
+            interests: emptyInterests(),
+          },
+        ];
+      }),
+    );
+    service.getFriends.mockResolvedValue({ revision: 'saved', friends });
+    await navigate('/friends?search=Friend&page=2&sort=name&order=descend');
+    expect(await screen.findByText('Friend 03')).toBeInTheDocument();
+    expect(screen.queryByText('Friend 13')).not.toBeInTheDocument();
+    const saved = window.location.hash;
+    fireEvent.click(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Settings' }),
+    );
+    await screen.findByRole('heading', { name: 'Settings' });
+    await act(async () => window.history.back());
+    expect(await screen.findByText('Friend 03')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search friends' })).toHaveValue('Friend');
+    expect(window.location.hash).toBe(saved);
+    expect(service.getFriends).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search friends' }), {
+      target: { value: 'Friend 13' },
+    });
+    expect(await screen.findByText('Friend 13')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).has('page')).toBe(false);
+  });
+
+  it('drops the friends cache when the signed-in account changes', async () => {
+    const friend = {
+      id: '00000000-0000-4000-8000-000000000001',
+      name: 'Earlier snapshot',
+      avatarId: 'spring-001-rabbit',
+      interests: emptyInterests(),
+    };
+    service.getFriends.mockResolvedValueOnce({ revision: 'saved', friends: { [friend.id]: friend } });
+    await navigate('/friends');
+    expect(await screen.findByText('Earlier snapshot')).toBeInTheDocument();
+    act(() => updateAuth(createAuthUser('another-account')));
+    expect(await screen.findByText('No friends yet. Add your first friend.')).toBeInTheDocument();
+    expect(screen.queryByText('Earlier snapshot')).not.toBeInTheDocument();
+    expect(service.getFriends).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ['/games/1', true],
     ['/', false],
@@ -556,6 +790,7 @@ describe('modernized routes and Ant Design controls', () => {
     service.getLibrary.mockResolvedValue(base);
     await navigate('/');
     const create = await screen.findByRole('button', { name: 'Create individual boxes' });
+    expect(create.querySelector('.lucide-save')).not.toBeNull();
     expect(create).toBeDisabled();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 01' }));
     expect(create).toBeEnabled();
@@ -885,7 +1120,7 @@ describe('modernized routes and Ant Design controls', () => {
 
   it.each([
     ['/game-night', 'Game Night', 'Game night planning and game suggestions are coming soon.'],
-    ['/friends', 'Friends', 'Friends and their game ratings are coming soon.'],
+    ['/friends', 'Friends', 'No friends yet. Add your first friend.'],
   ])('opens placeholder %s directly', async (path, title, description) => {
     await navigate(path);
     expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();

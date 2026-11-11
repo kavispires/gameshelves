@@ -104,7 +104,7 @@ export function validateContent(value: unknown): asserts value is LibraryContent
 
 // Firestore counts UTF-8 strings, field names, 8-byte numbers, and 32 bytes per map.
 // JSON length is not a document-size calculation.
-function valueSize(value: unknown): number {
+export function valueSize(value: unknown): number {
   if (typeof value === 'string') return byteSize(value);
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) throw new Error('Cannot store non-finite numbers.');

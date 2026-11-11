@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { library, shelfEntry } from '../test/fixtures';
+import { emptyInterests } from '../utils/friends';
 import { libraryDocuments } from '../utils/library';
 
 const sdk = vi.hoisted(() => ({
@@ -60,6 +61,74 @@ describe('atomic aggregate library persistence', () => {
     await expect(getLibrary()).resolves.toEqual(library);
     expect(sdk.getDoc.mock.calls).toEqual([['general/catalog'], ['general/boxes']]);
     expect(sdk.transactionSet).not.toHaveBeenCalled();
+  });
+
+  describe('shared friends persistence', () => {
+    const friend = {
+      id: '00000000-0000-4000-8000-000000000001',
+      name: 'Test friend',
+      avatarId: 'spring-001-rabbit',
+      interests: emptyInterests(),
+    };
+    it('reads an absent document as empty without writing and validates saved data', async () => {
+      const { getFriends } = await import('./firebase');
+      sdk.getDoc.mockResolvedValue({ exists: () => false });
+      await expect(getFriends()).resolves.toEqual({ revision: null, friends: {} });
+      expect(sdk.getDoc).toHaveBeenCalledWith('general/friends');
+      expect(sdk.transactionSet).not.toHaveBeenCalled();
+      sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ malformed: true }) });
+      await expect(getFriends()).rejects.toThrow('Invalid saved friends');
+    });
+
+    it('creates and edits friends atomically while preserving unrelated entries', async () => {
+      const { saveFriend } = await import('./firebase');
+      sdk.getDoc.mockResolvedValue({ exists: () => false });
+      const first = await saveFriend({ revision: null, friends: {} }, friend);
+      const other = {
+        ...friend,
+        id: '00000000-0000-4000-8000-000000000002',
+        name: 'Another friend',
+        avatarId: 'spring-002-bee',
+      };
+      sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ ...first, schemaVersion: 1 }) });
+      const second = await saveFriend(first, other);
+      sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ ...second, schemaVersion: 1 }) });
+      const edited = { ...friend, interests: { ...friend.interests, likesCooperative: false } };
+      const third = await saveFriend(second, edited);
+      expect(third.friends).toEqual({ [friend.id]: edited, [other.id]: other });
+      expect(sdk.transactionSet.mock.lastCall).toEqual(['general/friends', { ...third, schemaVersion: 1 }]);
+    });
+
+    it('rejects stale edits, invalid profiles and oversized documents before writing', async () => {
+      const { saveFriend } = await import('./firebase');
+      sdk.getDoc.mockResolvedValue({
+        exists: () => true,
+        data: () => ({ schemaVersion: 1, revision: 'newer', friends: {} }),
+      });
+      await expect(saveFriend({ revision: null, friends: {} }, friend)).rejects.toThrow(
+        'changed on another device',
+      );
+      await expect(
+        saveFriend({ revision: null, friends: {} }, { ...friend, avatarId: 'missing' }),
+      ).rejects.toThrow('Invalid friend');
+      await expect(
+        saveFriend({ revision: null, friends: {} }, { ...friend, name: 'x'.repeat(820 * 1024) }),
+      ).rejects.toThrow('800 KiB');
+      expect(sdk.transactionSet).not.toHaveBeenCalled();
+    });
+
+    it('rejects an avatar used by another friend while allowing the owner to keep it', async () => {
+      const { saveFriend } = await import('./firebase');
+      const base = { revision: 'saved', friends: { [friend.id]: friend } };
+      sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ ...base, schemaVersion: 1 }) });
+      await expect(
+        saveFriend(base, { ...friend, id: '00000000-0000-4000-8000-000000000002' }),
+      ).rejects.toThrow('already used');
+      expect(sdk.transactionSet).not.toHaveBeenCalled();
+      const edited = { ...friend, name: 'Renamed friend' };
+      await expect(saveFriend(base, edited)).resolves.toMatchObject({ friends: { [friend.id]: edited } });
+      expect(sdk.transactionSet).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('keeps pre-migration reads read-only and refuses partially migrated data', async () => {

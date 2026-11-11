@@ -8,6 +8,8 @@ A base game, its expansions, and its promos can live together in one box, with o
 UI icons use static imports from `lucide-react`, with shared size/stroke defaults. Icons supplement
 text labels; icon-only actions keep accessible names. Common Ant Design icon slots use Lucide too,
 but Ant Design retains its own transitive `@ant-design/icons` dependency for internal controls.
+Buttons that write to Firestore, including final confirmations, use the shared `saveIcon`.
+Actions that only open an editor or change a draft retain their action-specific icons.
 
 ## What you can do
 
@@ -19,7 +21,7 @@ global library; signing in does not create a separate collection.
 | **Find Game**  | Search every game or browse expandable boxes. Select games and choose a main game to group them in one physical box.                   |
 | **Game Night** | Placeholder for planning a game night and choosing games.                                                                              |
 | **Shelves**    | Switch between shelf illustrations and a full box table. Open a shelf to browse its boxes, add boxes or change their locations.        |
-| **Friends**    | Placeholder for friends and their game ratings.                                                                                        |
+| **Friends**    | Add and edit shared friend profiles, choose a spring avatar, and rate 26 game preferences.                                             |
 | **Settings**   | Upload a complete BGG collection CSV, review changes and confirm the import. Reload saved data to pick up changes from another device. |
 
 ## Your catalog and your boxes
@@ -130,6 +132,33 @@ Changing the local `collection.csv` file alone does not change the app.
 
 ## Where your data lives
 
+### Friends
+
+The Friends page is shared by all signed-in accounts, just like the library.
+**Add friend** opens a modal with a required name and a visual choice of 50 spring avatars.
+The avatar's stable symbol ID is saved, not an uploaded image.
+Each avatar can belong to only one friend. Avatars used by other friends are disabled and
+listed last; editing a friend keeps their own avatar available. Saves reject duplicate assignments.
+Use **Edit** to change a name, avatar or preferences. Duplicate names are allowed.
+
+The 26 preferences are organized into Engagement, Mechanics & Genres, Theme & Aesthetics,
+and Table Vibe. Three-column preference grids use **Yes**, **No** or a **blank** (not rated)
+Segmented selection, stacking on mobile. New profiles start unrated;
+both Yes and No count toward the table's rated-preferences total. Preferences are optional.
+Archetype assignment and friend deletion are not included yet.
+
+Search, sort and pagination are kept in the Friends URL. The page loads `general/friends`
+only when visited and caches it for the signed-in session. Successful saves update that cache;
+**Reload friends** fetches changes made on another device. Revision-checked transactions reject
+stale saves rather than overwriting another person's changes. On a conflict, cancel the editor,
+reload the list, and review the current profile before editing again. Failed saves retain the draft.
+
+Avatar artwork lives in `src/assets/spring-avatars.svg` as external `<symbol>` entries.
+The catalog in `src/assets/spring-avatars.json` supplies readable labels, IDs and original viewBoxes.
+Use the imported asset URL and `<use href="...#symbol-id">` so Vite's deployment base is respected.
+
+### Library storage
+
 Firestore is the live database. After migration, the app reads two shared documents:
 
 | Firestore document | Contents                                                            |
@@ -171,10 +200,13 @@ versions from continuing to write the legacy stores.
 Also add **single-field index exemptions** for the `games` and `boxes` map fields in collection
 `general`, disabling ascending, descending and array indexes (including inherited map-subfield
 indexes). [firestore.indexes.json](./firestore.indexes.json) records the configuration.
+The Friends page also requires the updated authenticated rules for `general/friends` and
+the `friends` map-field index exemption in that configuration. These changes must be
+published before Friends can load or save in production; the app does not deploy them.
 These maps are loaded whole, not searched with Firestore queries; indexing every nested game field
 can exceed Firestore's index limits. Neither file takes effect until you apply it.
 
 ## Not included yet
 
 Independent tracking of multiple copies/editions, a new shelf model, automatic organization,
-friend ratings and game-night recommendations are future work.
+game-specific friend ratings, archetype assignment and game-night recommendations are future work.

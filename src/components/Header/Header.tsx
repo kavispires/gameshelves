@@ -5,7 +5,7 @@ import { Menu } from './Menu';
 
 export function Header() {
   return (
-    <Layout.Header className="box-border flex h-14 shrink-0 items-center gap-4 bg-ink px-4 leading-normal sm:px-6">
+    <Layout.Header className="sticky top-0 z-40 box-border flex h-14 shrink-0 items-center gap-4 bg-ink px-4 leading-normal sm:px-6">
       <Link
         to="/"
         aria-label="Game Shelves home"

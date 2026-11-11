@@ -1,5 +1,6 @@
 import { Alert, Form, Modal, Select, Typography } from 'antd';
-import { Boxes, Package } from 'lucide-react';
+import { saveIcon } from 'components/icons';
+import { Package } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SHELVES_IDS } from 'utils/constants';
 import { getBoxName, groupGames } from 'utils/library';
@@ -44,7 +45,7 @@ export function GroupGamesModal({
       open
       okText="Group games"
       confirmLoading={saving}
-      okButtonProps={{ disabled: !destination || saving, icon: <Boxes /> }}
+      okButtonProps={{ disabled: !destination || saving, icon: saveIcon }}
       cancelButtonProps={{ disabled: saving }}
       closable={!saving}
       mask={{ closable: !saving }}

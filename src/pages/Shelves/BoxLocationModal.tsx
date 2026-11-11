@@ -1,6 +1,7 @@
 import { Alert, Modal, Select } from 'antd';
 import { ShelvesSVG } from 'components';
-import { Package, Save } from 'lucide-react';
+import { saveIcon } from 'components/icons';
+import { Package } from 'lucide-react';
 import { useState } from 'react';
 import { SHELVES_IDS } from 'utils/constants';
 import { STORAGES, type StorageId, storageForShelf } from 'utils/storage';
@@ -27,7 +28,7 @@ export function BoxLocationModal({ box, perShelf, saving, error, onSave, onCance
       width={720}
       okText="Save"
       confirmLoading={saving}
-      okButtonProps={{ disabled: saving || !selected || selected === box.shelfId, icon: <Save /> }}
+      okButtonProps={{ disabled: saving || !selected || selected === box.shelfId, icon: saveIcon }}
       cancelButtonProps={{ disabled: saving }}
       closable={!saving}
       mask={{ closable: !saving }}

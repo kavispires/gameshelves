@@ -9,7 +9,7 @@ import {
   Typography,
 } from 'antd';
 import { GameCover } from 'components';
-import { clearIcon, tableIcons } from 'components/icons';
+import { clearIcon, saveIcon, tableIcons } from 'components/icons';
 import { Package, Pencil, Search, Trash2, TriangleAlert, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -221,7 +221,7 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
             description="The box will be deleted. Its items will remain in the catalog, unassigned to a box."
             okText="Delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true, disabled, icon: <Trash2 /> }}
+            okButtonProps={{ danger: true, disabled, icon: saveIcon }}
             cancelButtonProps={{ icon: <X /> }}
             disabled={disabled}
             onConfirm={() => onDelete(box.id)}

@@ -17,8 +17,10 @@ import {
 } from 'firebase/firestore';
 import { isEqual } from 'lodash';
 import { GAME_TYPES } from 'utils/constants';
+import { readFriends, usedAvatarIds, validateFriend } from 'utils/friends';
 import { isGameImages, isRecord, isShelfEntry, normalizeShelfEntry } from 'utils/guards';
-import { libraryDocuments, readLibrary } from 'utils/library';
+import { DOCUMENT_BUDGET, libraryDocuments, readLibrary, valueSize } from 'utils/library';
+import type { Friend, FriendsState } from '../types/friends';
 import type { LegacyGame, Library, LibraryContent } from '../types/library';
 
 function required(name: keyof ImportMetaEnv): string {
@@ -165,4 +167,34 @@ export async function saveLibrary(expected: Library, content: LibraryContent): P
     transaction.set(boxesRef, documents.boxes);
   });
   return { ...content, revision };
+}
+
+export async function getFriends(): Promise<FriendsState> {
+  const snapshot = await getDoc(doc(firestore, 'general', 'friends'));
+  return snapshot.exists() ? readFriends(snapshot.data()) : { revision: null, friends: {} };
+}
+
+export async function saveFriend(expected: FriendsState, friend: Friend): Promise<FriendsState> {
+  validateFriend(friend);
+  const revision = crypto.randomUUID();
+  const friends = { ...expected.friends, [friend.id]: friend };
+  const document = { schemaVersion: 1, revision, friends };
+  if (valueSize(document) + 128 > DOCUMENT_BUDGET) {
+    throw new Error('The friends document exceeds the 800 KiB safety budget. Nothing was saved.');
+  }
+  const reference = doc(firestore, 'general', 'friends');
+  await runTransaction(firestore, async (transaction) => {
+    const snapshot = await transaction.get(reference);
+    const current = snapshot.exists() ? readFriends(snapshot.data()) : { revision: null, friends: {} };
+    if (current.revision !== expected.revision) {
+      throw new Error(
+        'Friends changed on another device. Cancel, reload friends and review your changes before saving.',
+      );
+    }
+    if (usedAvatarIds(current.friends, friend.id).has(friend.avatarId)) {
+      throw new Error('That avatar is already used by another friend. Choose a different avatar.');
+    }
+    transaction.set(reference, document);
+  });
+  return { revision, friends };
 }
