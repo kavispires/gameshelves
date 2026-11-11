@@ -288,6 +288,25 @@ export function moveBoxes(library: Library, ids: string[], shelfId: string): Lib
   return next;
 }
 
+export function createIndividualBoxes(library: Library, ids: string[]): LibraryContent {
+  if (!library.revision || library.legacy) {
+    throw new Error('Import and migrate the library in Settings before creating boxes.');
+  }
+  const selected = new Set(ids);
+  if (!selected.size) throw new Error('Select at least one unboxed game.');
+  const assigned = new Set(Object.values(library.boxes).flatMap((box) => box.contains));
+  const boxes = { ...library.boxes };
+  const updatedAt = Date.now();
+  for (const id of selected) {
+    if (!Object.hasOwn(library.games, id)) throw new Error(`Unknown game ${id}.`);
+    if (assigned.has(id)) throw new Error('Select only unboxed games to create individual boxes.');
+    boxes[id] = { id, contains: [id], shelfId: 'unshelved', size: 'unknown', updatedAt };
+  }
+  const next = { games: library.games, boxes };
+  libraryDocuments(next, '00000000-0000-0000-0000-000000000000');
+  return next;
+}
+
 export function groupGames(library: Library, ids: string[], leaderId: string): LibraryContent {
   if (!library.revision || library.legacy) {
     throw new Error('Import and migrate the library in Settings before grouping games.');

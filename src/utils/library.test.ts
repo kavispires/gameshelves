@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { catalogGame, library, promosLibrary, shelfEntry } from '../test/fixtures';
 import type { Library } from '../types/library';
 import {
+  createIndividualBoxes,
   findBox,
   groupGames,
   libraryDocuments,
@@ -13,6 +14,56 @@ import {
 } from './library';
 
 describe('catalog and physical boxes', () => {
+  it('creates separate unshelved original boxes while preserving the catalog and existing boxes', () => {
+    const base: Library = {
+      ...library,
+      games: {
+        ...library.games,
+        '2': { ...catalogGame, id: '2' },
+        '3': { ...catalogGame, id: '3', type: 'expansion' },
+      },
+    };
+    const original = structuredClone(base);
+    const next = createIndividualBoxes(base, ['2', '3', '2']);
+    expect(next.games).toBe(base.games);
+    expect(next.boxes).toEqual({
+      ...base.boxes,
+      '2': { id: '2', contains: ['2'], shelfId: 'unshelved', size: 'unknown', updatedAt: expect.any(Number) },
+      '3': { id: '3', contains: ['3'], shelfId: 'unshelved', size: 'unknown', updatedAt: expect.any(Number) },
+    });
+    expect(base).toEqual(original);
+  });
+
+  it('rejects empty, unknown, already boxed and unmigrated individual-box selections without partial edits', () => {
+    const base: Library = {
+      ...library,
+      games: {
+        ...library.games,
+        '2': { ...catalogGame, id: '2' },
+        '3': { ...catalogGame, id: '3' },
+        '4': { ...catalogGame, id: '4' },
+      },
+      boxes: {
+        ...library.boxes,
+        '1': { ...library.boxes['1'], contains: ['1', '3'] },
+        promos: { ...promosLibrary.boxes.promos, contains: ['4'] },
+      },
+    };
+    const original = structuredClone(base);
+    expect(() => createIndividualBoxes(base, [])).toThrow('at least one');
+    for (const id of ['missing', '__proto__']) {
+      expect(() => createIndividualBoxes(base, ['2', id])).toThrow('Unknown game');
+    }
+    for (const id of ['1', '3', '4']) {
+      expect(() => createIndividualBoxes(base, ['2', id])).toThrow('only unboxed games');
+    }
+    expect(() => createIndividualBoxes({ ...base, revision: null }, ['2'])).toThrow('migrate');
+    expect(() => createIndividualBoxes({ ...base, legacy: { shelves: {}, images: {} } }, ['2'])).toThrow(
+      'migrate',
+    );
+    expect(base).toEqual(original);
+  });
+
   it('groups whole selected-main boxes, preserves the leader and removes obsolete relationships without deleting games', () => {
     const base: Library = {
       ...library,

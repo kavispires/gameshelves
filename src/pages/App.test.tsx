@@ -549,6 +549,109 @@ describe('modernized routes and Ant Design controls', () => {
     expect(base.boxes['1'].contains).toEqual(['1', '14']);
   });
 
+  it('creates individual boxes for unboxed selections across pages and search in one save', async () => {
+    const base = tableLibrary(13);
+    delete base.boxes['1'];
+    delete base.boxes['13'];
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    const create = await screen.findByRole('button', { name: 'Create individual boxes' });
+    expect(create).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 01' }));
+    expect(create).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Group in a box' })).toBeDisabled();
+    fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Box 13' }));
+    expect(screen.getByRole('button', { name: 'Group in a box' })).toBeEnabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search games' }), { target: { value: 'Box 01' } });
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    fireEvent.click(create);
+    expect(await screen.findByText('Individual boxes created')).toBeInTheDocument();
+    expect(await screen.findByText('0 selected')).toBeInTheDocument();
+    expect(service.saveLibrary).toHaveBeenCalledExactlyOnceWith(base, {
+      games: base.games,
+      boxes: {
+        ...base.boxes,
+        '1': {
+          id: '1',
+          contains: ['1'],
+          size: 'unknown',
+          shelfId: 'unshelved',
+          updatedAt: expect.any(Number),
+        },
+        '13': {
+          id: '13',
+          contains: ['13'],
+          size: 'unknown',
+          shelfId: 'unshelved',
+          updatedAt: expect.any(Number),
+        },
+      },
+    });
+    expect(screen.getByRole('row', { name: 'Box 01: Physical box' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box: Box 01' })).toHaveAttribute('href', '#/boxes/1');
+    const params = new URLSearchParams(window.location.hash.split('?')[1]);
+    expect(params.has('selected')).toBe(false);
+    expect(params.get('search')).toBe('Box 01');
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(base.boxes).not.toHaveProperty('1');
+    expect(base.boxes).not.toHaveProperty('13');
+  });
+
+  it('disables individual box creation if any selected game already has a box, including contained games', async () => {
+    const base = treeLibrary();
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    const create = await screen.findByRole('button', { name: 'Create individual boxes' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 03' }));
+    expect(create).toBeEnabled();
+    for (const name of ['Hidden expansion', base.games['1'].name, 'Box 04']) {
+      fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
+      expect(create).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Group in a box' })).toBeEnabled();
+      fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
+      expect(create).toBeEnabled();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+    expect(create).toBeDisabled();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('retains individual box selections on failure and blocks duplicate actions while retrying', async () => {
+    const base = { ...tableLibrary(2), boxes: {} };
+    service.getLibrary.mockResolvedValue(base);
+    service.saveLibrary.mockRejectedValueOnce(new Error('Boxes write failed'));
+    await navigate('/?selected=1&selected=2&box=unboxed');
+    const create = await screen.findByRole('button', { name: 'Create individual boxes' });
+    fireEvent.click(create);
+    expect(await screen.findByText('Boxes write failed')).toBeInTheDocument();
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'Box 01: Unassigned' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select Box 02' })).toBeChecked();
+    let finish!: () => void;
+    service.saveLibrary.mockImplementationOnce(
+      (_base, next) =>
+        new Promise((resolve) => {
+          finish = () => resolve({ ...next, revision: 'individual-boxes' });
+        }),
+    );
+    fireEvent.click(create);
+    await waitFor(() => expect(service.saveLibrary).toHaveBeenCalledTimes(2));
+    expect(create).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Group in a box' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Select Box 01' })).toBeDisabled();
+    fireEvent.click(create);
+    expect(service.saveLibrary).toHaveBeenCalledTimes(2);
+    await act(async () => finish());
+    expect(await screen.findByText('0 selected')).toBeInTheDocument();
+    expect(screen.queryByText('Boxes write failed')).not.toBeInTheDocument();
+    expect(screen.getByText('No data')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).get('box')).toBe('unboxed');
+    expect(Object.keys(service.saveLibrary.mock.lastCall?.[1].boxes ?? {})).toEqual(['1', '2']);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
   it('previews carried contents, preserves an existing leader and retries grouping without allowing pending edits', async () => {
     const base = tableLibrary(5);
     base.boxes['1'] = {
@@ -616,6 +719,7 @@ describe('modernized routes and Ant Design controls', () => {
     expect(screen.getByRole('link', { name: 'Box: Test Game' })).toHaveAttribute('href', '#/boxes/1');
     expect(screen.getByRole('checkbox', { name: 'Select Test Game' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Group in a box' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create individual boxes' })).toBeDisabled();
     expect(service.saveLibrary).not.toHaveBeenCalled();
   });
 

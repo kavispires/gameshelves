@@ -29,12 +29,13 @@ import {
   MapPin,
   Package,
   PackageOpen,
+  PackagePlus,
   Search,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { GAME_TYPES, URLS } from 'utils/constants';
-import { groupGames } from 'utils/library';
+import { createIndividualBoxes, findBox, groupGames } from 'utils/library';
 import { shelfName, storageForShelf } from 'utils/storage';
 import { GroupGamesModal } from './GroupGamesModal';
 
@@ -200,6 +201,8 @@ export function FindGame() {
   }
 
   const disabled = Boolean(library.legacy) || !library.revision || save.isPending || grouping;
+  const allUnboxed = selected.length > 0 && selected.every((id) => !findBox(library.boxes, id));
+  const actionError = error || save.error?.message;
   const columns: TableColumnsType<GameRow> = [
     {
       title: 'Game',
@@ -351,6 +354,28 @@ export function FindGame() {
     }
   }
 
+  function createBoxes() {
+    try {
+      if (!library) throw new Error('The library is not loaded.');
+      const next = createIndividualBoxes(library, selected);
+      setError('');
+      save.mutate(
+        { base: library, next },
+        {
+          onSuccess: () => {
+            updateParams({ selected: undefined });
+            notification.success({
+              title: 'Individual boxes created',
+              icon: <CircleCheck className="text-success" />,
+            });
+          },
+        },
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to create individual boxes.');
+    }
+  }
+
   return (
     <Layout.Content className="box-border mx-auto w-full min-w-0 max-w-[1600px] p-4 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
@@ -393,7 +418,7 @@ export function FindGame() {
           showIcon
           type="info"
           className="mb-4"
-          title="Import and migrate your library in Settings to group games."
+          title="Import and migrate your library in Settings to organize games."
         />
       )}
       <Card styles={{ body: { padding: 0 } }}>
@@ -436,6 +461,14 @@ export function FindGame() {
             Group in a box
           </Button>
           <Button
+            icon={<PackagePlus />}
+            disabled={disabled || !allUnboxed}
+            loading={save.isPending && !grouping}
+            onClick={createBoxes}
+          >
+            Create individual boxes
+          </Button>
+          <Button
             icon={<ListX />}
             disabled={disabled || !selected.length}
             onClick={() => updateParams({ selected: undefined })}
@@ -443,6 +476,9 @@ export function FindGame() {
             Clear selection
           </Button>
         </div>
+        {!grouping && actionError && (
+          <Alert showIcon type="error" className="mx-4 mb-4" title={actionError} />
+        )}
         <ul aria-label="Row colors" className="game-row-legend flex flex-wrap gap-2">
           {Object.entries(rowLabels).map(([state, label]) => (
             <li key={state} className={`game-row-key game-row-${state} rounded px-2 py-1 text-xs`}>
@@ -513,7 +549,7 @@ export function FindGame() {
           library={library}
           selected={selected}
           saving={save.isPending}
-          error={error || save.error?.message}
+          error={actionError}
           onSave={group}
           onCancel={() => {
             setGrouping(false);
