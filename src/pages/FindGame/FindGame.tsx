@@ -22,6 +22,7 @@ import {
   Box,
   Boxes,
   CircleCheck,
+  CornerDownRight,
   ExternalLink,
   ImageOff,
   List,
@@ -222,6 +223,9 @@ export function FindGame() {
             />
           ) : (
             <Package size={24} className="text-info" />
+          )}
+          {rowState(game) === 'contained' && (
+            <CornerDownRight size={14} className="shrink-0" aria-hidden="true" />
           )}
           <Link to={`/${game.kind === 'game' ? 'games' : 'boxes'}/${encodeURIComponent(game.id)}`}>
             {game.name}

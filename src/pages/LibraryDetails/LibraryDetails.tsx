@@ -406,8 +406,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                 <Select
                   id="box-contents"
                   mode="multiple"
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label', autoClearSearchValue: false }}
                   value={contents}
                   onChange={(ids: string[]) =>
                     setDraft({ ...draft, contains: draft.mainGameId === null ? ids : [draft.id, ...ids] })

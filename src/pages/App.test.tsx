@@ -605,6 +605,13 @@ describe('modernized routes and Ant Design controls', () => {
     expect(within(mainRow).getByText('2')).toBeInTheDocument();
     const contained = screen.getByRole('row', { name: 'Hidden expansion: Inside another box' });
     expect(contained).toHaveClass('game-row-contained');
+    expect(
+      within(contained).getByRole('link', { name: 'Hidden expansion' }).previousElementSibling,
+    ).toHaveClass('lucide-corner-down-right');
+    expect(mainRow.querySelector('.lucide-corner-down-right')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('row', { name: 'Box 03: Unassigned' }).querySelector('.lucide-corner-down-right'),
+    ).not.toBeInTheDocument();
     expect(within(contained).getByText('-')).toBeInTheDocument();
     expect(screen.getByRole('row', { name: 'Box 03: Unassigned' })).toHaveClass('game-row-unassigned');
     const boxLink = within(mainRow).getByRole('link', { name: `Box: ${base.games['1'].name}` });
@@ -617,6 +624,7 @@ describe('modernized routes and Ant Design controls', () => {
     expect(await screen.findByRole('tooltip')).toHaveTextContent(base.games['1'].name);
     fireEvent.blur(boxLink);
     const promo = screen.getByRole('row', { name: 'Box 04: Inside another box' });
+    expect(promo.querySelector('.lucide-corner-down-right')).toBeInTheDocument();
     expect(within(promo).getByRole('link', { name: 'Box: Promos shoe box' })).toHaveTextContent(
       'Promos shoe box',
     );
@@ -631,6 +639,11 @@ describe('modernized routes and Ant Design controls', () => {
     );
     expect(
       await screen.findByRole('row', { name: 'Hidden expansion: Inside another box' }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('row', { name: 'Hidden expansion: Inside another box' })
+        .querySelector('.lucide-corner-down-right'),
     ).toBeInTheDocument();
     const container = screen.getByRole('row', { name: 'Promos shoe box: Physical box' });
     expect(within(container).getByRole('link', { name: 'Promos shoe box' })).toHaveAttribute(
@@ -1537,6 +1550,36 @@ describe('modernized routes and Ant Design controls', () => {
     });
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
   });
+  it('keeps the additional-games search prefix after selecting multiple matching games', async () => {
+    const user = userEvent.setup();
+    service.getLibrary.mockResolvedValue({
+      ...library,
+      games: {
+        ...library.games,
+        '2': { ...library.games['1'], id: '2', name: 'Test expansion one' },
+        '3': { ...library.games['1'], id: '3', name: 'Test expansion two' },
+        '4': { ...library.games['1'], id: '4', name: 'Unrelated game' },
+      },
+    });
+    await navigate('/games/1');
+    const search = await screen.findByRole('combobox', { name: 'Additional games in box' });
+    await user.type(search, 'Test expansion');
+    await user.click(await screen.findByText('Test expansion one'));
+    expect(search).toHaveValue('Test expansion');
+    expect(screen.queryByText('Unrelated game')).not.toBeInTheDocument();
+    await user.click(await screen.findByText('Test expansion two'));
+    expect(search).toHaveValue('Test expansion');
+    expect(screen.getByRole('link', { name: 'Test expansion one' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Test expansion two' })).toBeInTheDocument();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    await user.clear(search);
+    expect(search).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: 'Save box' }));
+    await waitFor(() =>
+      expect(service.saveLibrary.mock.lastCall?.[1].boxes['1'].contains).toEqual(['1', '2', '3']),
+    );
+  });
+
   it('creates a measured box after import without accepting partial dimensions', async () => {
     service.getLibrary.mockResolvedValue({ ...library, boxes: {} });
     await navigate('/games/1');
