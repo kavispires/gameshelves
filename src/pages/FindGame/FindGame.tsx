@@ -5,6 +5,7 @@ import {
   Breadcrumb,
   Button,
   Card,
+  Checkbox,
   Input,
   Layout,
   Radio,
@@ -19,6 +20,7 @@ import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { GAME_TYPES, URLS } from 'utils/constants';
 import { groupGames } from 'utils/library';
 import { shelfName, storageForShelf } from 'utils/storage';
 import { GroupGamesModal } from './GroupGamesModal';
@@ -31,7 +33,7 @@ type GameRow = {
   shelfId?: string;
   itemCount?: number;
   children?: GameRow[];
-} & ({ kind: 'game'; type: GameType } | { kind: 'container' });
+} & ({ kind: 'game'; type: GameType; missingImage: boolean } | { kind: 'container' });
 
 const rowLabels = {
   box: 'Physical box',
@@ -59,6 +61,10 @@ export function FindGame() {
   const [params, setParams] = useSearchParams();
   const search = params.get('search') ?? '';
   const view = params.get('view') === 'boxes' ? 'boxes' : 'games';
+  const missingImages = params.get('image') === 'missing';
+  const typeFilters = GAME_TYPES.filter((type) => params.getAll('type').includes(type));
+  const unboxedOnly = params.get('box') === 'unboxed';
+  const unshelvedOnly = params.get('shelf') === 'unshelved';
   const pageSize = PAGE_SIZES.find((size) => String(size) === params.get('pageSize')) ?? 10;
   const pageValue = Number(params.get('page') ?? 1);
   const requestedPage = Number.isSafeInteger(pageValue) && pageValue > 0 ? pageValue : 1;
@@ -87,13 +93,19 @@ export function FindGame() {
           ).values(),
         ]
       : Object.values(library.games);
+    const images = library.legacy?.images ?? library.games;
     const games: GameRow[] = catalog.map((game) => {
       const box = assignments.get(game.id);
+      const missingImage = ![images[game.id]?.image, images[game.id]?.thumbnail].some((url) => {
+        const value = url?.trim();
+        return value && value !== '???' && value !== URLS.BGG_NO_IMAGE;
+      });
       return {
         kind: 'game',
         id: game.id,
         name: game.name,
         type: game.type,
+        missingImage,
         boxId: box?.id,
         boxName: box?.name,
         shelfId: box?.shelfId,
@@ -129,7 +141,14 @@ export function FindGame() {
       ? boxes.filter((box) => box.children?.some((game) => matchesSearch(game, query))).map((box) => box.id)
       : [];
   const filtered = (view === 'games' ? games : boxes).filter(
-    (game) => matchesSearch(game, query) || game.children?.some((child) => matchesSearch(child, query)),
+    (game) =>
+      (matchesSearch(game, query) || game.children?.some((child) => matchesSearch(child, query))) &&
+      (view === 'boxes' ||
+        (game.kind === 'game' &&
+          (!missingImages || game.missingImage) &&
+          (!typeFilters.length || typeFilters.includes(game.type)) &&
+          (!unboxedOnly || !game.boxId) &&
+          (!unshelvedOnly || game.shelfId === 'unshelved'))),
   );
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(filtered.length / pageSize)));
   useEffect(() => {
@@ -194,6 +213,8 @@ export function FindGame() {
       title: 'Type',
       key: 'type',
       width: 120,
+      filters: view === 'games' ? GAME_TYPES.map((type) => ({ text: type, value: type })) : undefined,
+      filteredValue: view === 'games' ? typeFilters : [],
       sortOrder: sortKey === 'type' ? sortOrder : null,
       sorter: (a, b) => (a.kind === 'game' ? a.type : '').localeCompare(b.kind === 'game' ? b.type : ''),
       render: (_, game) => (game.kind === 'game' ? <Tag>{game.type}</Tag> : '-'),
@@ -202,6 +223,9 @@ export function FindGame() {
       title: 'Box',
       key: 'box',
       width: 180,
+      filters: view === 'games' ? [{ text: 'Unboxed', value: 'unboxed' }] : undefined,
+      filterMultiple: false,
+      filteredValue: view === 'games' && unboxedOnly ? ['unboxed'] : [],
       sortOrder: sortKey === 'box' ? sortOrder : null,
       sorter: (a, b) => (a.boxName ?? '').localeCompare(b.boxName ?? ''),
       render: (_, game) =>
@@ -227,6 +251,9 @@ export function FindGame() {
       title: 'Shelf location',
       key: 'location',
       width: 300,
+      filters: view === 'games' ? [{ text: 'Unshelved', value: 'unshelved' }] : undefined,
+      filterMultiple: false,
+      filteredValue: view === 'games' && unshelvedOnly ? ['unshelved'] : [],
       sortOrder: sortKey === 'location' ? sortOrder : null,
       sorter: (a, b) => locationName(a).localeCompare(locationName(b)),
       render: (_, game) => {
@@ -327,6 +354,16 @@ export function FindGame() {
               updateParams({ search: event.target.value || undefined, page: undefined, expanded: undefined });
             }}
           />
+          {view === 'games' && (
+            <Checkbox
+              checked={missingImages}
+              onChange={(event) =>
+                updateParams({ image: event.target.checked ? 'missing' : undefined, page: undefined })
+              }
+            >
+              Missing images only
+            </Checkbox>
+          )}
           <Typography.Text aria-live="polite">{selected.length} selected</Typography.Text>
           <Button
             type="primary"
@@ -384,15 +421,25 @@ export function FindGame() {
             showTotal: (total) =>
               `${total} ${view === 'boxes' ? (total === 1 ? 'box' : 'boxes') : total === 1 ? 'game' : 'games'}`,
           }}
-          onChange={(pagination, _filters, sorter) => {
+          onChange={(pagination, filters, sorter, extra) => {
             const sorting = Array.isArray(sorter) ? sorter[0] : sorter;
             const key = sorting?.order ? SORT_KEYS.find((key) => key === sorting.columnKey) : undefined;
             updateParams({
-              page: pagination.current && pagination.current > 1 ? String(pagination.current) : undefined,
+              page:
+                extra.action !== 'filter' && pagination.current && pagination.current > 1
+                  ? String(pagination.current)
+                  : undefined,
               pageSize:
                 pagination.pageSize && pagination.pageSize !== 10 ? String(pagination.pageSize) : undefined,
               sort: key ?? 'none',
               order: key ? (sorting?.order ?? undefined) : undefined,
+              ...(view === 'games'
+                ? {
+                    type: filters.type?.map(String) ?? [],
+                    box: filters.box?.includes('unboxed') ? 'unboxed' : undefined,
+                    shelf: filters.location?.includes('unshelved') ? 'unshelved' : undefined,
+                  }
+                : {}),
             });
           }}
         />

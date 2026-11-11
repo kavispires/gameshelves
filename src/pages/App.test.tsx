@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAuthUser } from '../test/auth';
 import { csvRow, library, promosLibrary, shelfEntry } from '../test/fixtures';
 import type { Library, LibraryContent } from '../types/library';
+import { URLS } from '../utils/constants';
 import { App } from './App';
 
 const service = vi.hoisted(() => ({
@@ -94,7 +95,131 @@ function treeLibrary(): Library {
   return base;
 }
 
+async function filterGameColumn(name: RegExp, values: string[] | null) {
+  fireEvent.click(within(screen.getByRole('columnheader', { name })).getByRole('button', { name: 'filter' }));
+  if (values) {
+    for (const value of values) {
+      fireEvent.click(await screen.findByRole('menuitem', { name: value }));
+    }
+  } else {
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }));
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+}
+
 describe('modernized routes and Ant Design controls', () => {
+  it('finds missing images without treating image-only or thumbnail-only games as missing, and resets pagination', async () => {
+    const base = tableLibrary(13);
+    base.games['1'] = { ...base.games['1'], image: '', thumbnail: '' };
+    base.games['2'] = { ...base.games['2'], thumbnail: '' };
+    base.games['3'] = { ...base.games['3'], image: '' };
+    base.games['4'] = { ...base.games['4'], image: '???', thumbnail: '   ' };
+    base.games['5'] = { ...base.games['5'], image: URLS.BGG_NO_IMAGE, thumbnail: '' };
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/?page=2&from=bookmark');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Box 12' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Missing images only' }));
+    expect(await screen.findByText('3 games')).toBeInTheDocument();
+    for (const id of ['01', '04', '05']) {
+      expect(screen.getByRole('link', { name: `Box ${id}` })).toBeInTheDocument();
+    }
+    for (const id of ['02', '03', '12']) {
+      expect(screen.queryByRole('link', { name: `Box ${id}` })).not.toBeInTheDocument();
+    }
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    const params = new URLSearchParams(window.location.hash.split('?')[1]);
+    expect(params.get('image')).toBe('missing');
+    expect(params.has('page')).toBe(false);
+    expect(params.get('from')).toBe('bookmark');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Missing images only' }));
+    expect(await screen.findByText('13 games')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).has('image')).toBe(false);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('combines type, unboxed and unshelved filters, keeping contained games distinct from unboxed games', async () => {
+    const base = tableLibrary(13);
+    base.games['2'] = { ...base.games['2'], type: 'expansion' };
+    base.games['3'] = { ...base.games['3'], type: 'promo' };
+    base.games['4'] = { ...base.games['4'], type: 'expansion' };
+    base.games['6'] = { ...base.games['6'], type: 'expansion' };
+    base.games['7'] = { ...base.games['7'], type: 'promo' };
+    base.boxes['1'] = { ...base.boxes['1'], contains: ['1', '2'], shelfId: 'unshelved' };
+    for (const id of ['2', '3', '4', '7']) delete base.boxes[id];
+    base.boxes.promos = { ...promosLibrary.boxes.promos, contains: ['7'], shelfId: 'unshelved' };
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Box 04' }));
+    fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
+    await filterGameColumn(/^Type/, ['expansion', 'promo']);
+    expect(await screen.findByText('5 games')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).getAll('type')).toEqual([
+      'expansion',
+      'promo',
+    ]);
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).has('page')).toBe(false);
+    await filterGameColumn(/^Box/, ['Unboxed']);
+    expect(await screen.findByText('2 games')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box 03' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box 04' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Box 02' })).not.toBeInTheDocument();
+    await filterGameColumn(/^Shelf location/, ['Unshelved']);
+    expect(screen.queryByRole('row', { name: /^Box \d/ })).not.toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).get('shelf')).toBe('unshelved');
+    await filterGameColumn(/^Box/, null);
+    expect(await screen.findByText('2 games')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box 02' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box 07' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Box 04' })).not.toBeInTheDocument();
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    await filterGameColumn(/^Shelf location/, null);
+    expect(await screen.findByText('5 games')).toBeInTheDocument();
+    await filterGameColumn(/^Type/, null);
+    expect(await screen.findByText('13 games')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select Box 04' })).toBeChecked();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it.each(['unboxed', 'unshelved'])(
+    'restores combined %s filters through detail navigation and suspends them in Boxes view',
+    async (filter) => {
+      const base = tableLibrary(13);
+      base.games['13'] = { ...base.games['13'], type: 'promo', image: '', thumbnail: '' };
+      if (filter === 'unboxed') delete base.boxes['13'];
+      else base.boxes['13'] = { ...base.boxes['13'], shelfId: 'unshelved' };
+      service.getLibrary.mockResolvedValue(base);
+      await navigate(
+        `/?search=Box&image=missing&type=promo&type=not-a-type&${filter === 'unboxed' ? 'box=unboxed' : 'shelf=unshelved'}&sort=name&order=descend&selected=13&from=bookmark`,
+      );
+      await screen.findByText('1 game');
+      expect(screen.getByRole('checkbox', { name: 'Missing images only' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Select Box 13' })).toBeChecked();
+      const address = window.location.hash;
+      fireEvent.click(screen.getByRole('link', { name: 'Box 13' }));
+      await screen.findByLabelText('Image URL');
+      if (filter === 'unboxed') await act(async () => window.history.back());
+      else fireEvent.click(screen.getByRole('link', { name: 'Back' }));
+      await screen.findByText('1 game');
+      expect(window.location.hash).toBe(address);
+      expect(screen.getByRole('checkbox', { name: 'Missing images only' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Select Box 13' })).toBeChecked();
+      expect(screen.getByRole('columnheader', { name: 'Game' })).toHaveAttribute('aria-sort', 'descending');
+      fireEvent.click(screen.getByRole('radio', { name: 'Boxes' }));
+      expect(await screen.findByText(filter === 'unboxed' ? '12 boxes' : '13 boxes')).toBeInTheDocument();
+      expect(screen.queryByRole('checkbox', { name: 'Missing images only' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'filter' })).not.toBeInTheDocument();
+      expect(screen.getByRole('row', { name: 'Box 12: Physical box' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('radio', { name: 'All games' }));
+      expect(await screen.findByText('1 game')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Missing images only' })).toBeChecked();
+      expect(new URLSearchParams(window.location.hash.split('?')[1]).get('from')).toBe('bookmark');
+      expect(service.getLibrary).toHaveBeenCalledTimes(1);
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+    },
+  );
+
   it('uses history rather than route indexes when going back through shelf, box and game details', async () => {
     await navigate('/games/1?from=details');
     await screen.findByLabelText('Image URL');
@@ -317,8 +442,8 @@ describe('modernized routes and Ant Design controls', () => {
     await screen.findByRole('table');
     expect(screen.getByText('14 games')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Board game shelves' })).not.toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Shelf location' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Type/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Shelf location/ })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Box 01' })).toHaveAttribute('src', base.games['1'].thumbnail);
     expect(screen.getByRole('link', { name: 'View Box 01 on BoardGameGeek' })).toHaveAttribute(
       'href',
@@ -463,6 +588,30 @@ describe('modernized routes and Ant Design controls', () => {
     expect(screen.getByRole('link', { name: 'Box: Test Game' })).toHaveAttribute('href', '#/boxes/1');
     expect(screen.getByRole('checkbox', { name: 'Select Test Game' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Group in a box' })).toBeDisabled();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('uses the legacy image cache when filtering games without covers', async () => {
+    service.getLibrary.mockResolvedValue({
+      revision: null,
+      games: {},
+      boxes: {},
+      legacy: {
+        shelves: {
+          '1': {
+            ...shelfEntry,
+            contains: [...shelfEntry.contains, { id: '2', name: 'Missing legacy cover', type: 'expansion' }],
+          },
+        },
+        images: { '1': { thumbnail: 'https://example.com/legacy.jpg' } },
+      },
+    });
+    await navigate('/');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Missing images only' }));
+    expect(await screen.findByText('1 game')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Missing legacy cover' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Test Game' })).not.toBeInTheDocument();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
     expect(service.saveLibrary).not.toHaveBeenCalled();
   });
 

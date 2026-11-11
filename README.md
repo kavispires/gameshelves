@@ -36,13 +36,18 @@ or assign it to an existing box. Removing a box assignment does not delete the g
 In **Find Game**, search game or box names and use the checkboxes to select games across pages
 and search results. The table shows each game's cover, type, box, BGG link and a clickable
 **Storage / Shelf** location breadcrumb. Unboxed games show **Unassigned**.
+In **All games**, enable **Missing images only** to find entries without a usable stored cover or
+thumbnail. Filter **Type** by one or more classifications, **Box** by **Unboxed**, or **Shelf location**
+by **Unshelved**; reset a column's filter to show all values again. Filters combine with search and
+each other. Unshelved means a game is inside a box marked unshelved, not unassigned to a box.
+These filters are inactive in **Boxes** view and resume when switching back to **All games**.
 Switch **All games / Boxes** to browse the flat catalog or just physical boxes, including named
 containers. Expand a box to see its other games. Search also finds contained games and opens their
 box. **Items** counts every game in an original box (including its main game), or in a named container.
 Box-column names are limited to 15 characters including an ellipsis; hover or focus for the full name.
 Rows are green for physical boxes, gray for unassigned games and amber for games inside another box.
 The legend explains the colors; selected rows retain their selection highlight.
-The Find Game URL keeps the view, search, page, page size, sorting, expanded boxes and selected games,
+The Find Game URL keeps the view, search, filters, page, page size, sorting, expanded boxes and selected games,
 so browser Back restores the table after visiting a game or box. Table interactions replace the
 current history entry rather than adding an entry for every checkbox or search change.
 Game, box and shelf **Back** links (and the not-found page's Back button) return to the previous
