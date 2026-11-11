@@ -1554,6 +1554,34 @@ describe('modernized routes and Ant Design controls', () => {
     expect(await screen.findByText('Not assigned to a box.')).toBeInTheDocument();
   });
 
+  it('confirms a full app refresh separately from reloading saved library data', async () => {
+    await navigate('/settings');
+    const section = await screen.findByRole('region', { name: 'App browser refresh' });
+    const refresh = within(section).getByRole('button', { name: 'Refresh app' });
+    await waitFor(() => expect(refresh).toBeEnabled());
+    expect(within(section).getByText(/Cmd \+ Shift \+ R/)).toBeInTheDocument();
+    fireEvent.click(refresh);
+    let dialog = await screen.findByRole('dialog', { name: 'Refresh the app?' });
+    expect(within(dialog).getByText(/Unsaved changes/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+
+    fireEvent.click(refresh);
+    dialog = await screen.findByRole('dialog', { name: 'Refresh the app?' });
+    const reload = vi.fn();
+    vi.stubGlobal('window', { location: { reload } });
+    try {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Refresh app' }));
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
   it('reloads saved data without a CSV or writes, and discards an unsaved preview', async () => {
     await navigate('/settings');
     const reload = await screen.findByRole('button', { name: 'Reload saved library' });

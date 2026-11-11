@@ -32,7 +32,7 @@ import {
   PackageOpen,
   Search,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { GAME_TYPES, URLS } from 'utils/constants';
 import { createIndividualBoxes, findBox, groupGames } from 'utils/library';
@@ -72,6 +72,19 @@ const locationName = (game: GameRow) =>
   game.shelfId ? `${storageForShelf(game.shelfId).name} / ${shelfName(game.shelfId)}` : '';
 const PAGE_SIZES = [10, 25, 50, 100];
 const SORT_KEYS = ['name', 'type', 'box', 'items', 'location'] as const;
+
+function GameTableCell({ children, ...props }: ComponentPropsWithoutRef<'td'>) {
+  return (
+    <td {...props}>
+      {/* Ant injects tree controls outside the column renderer; align both together. */}
+      {props.className?.split(' ').includes('game-name-cell') ? (
+        <div className="flex items-center">{children}</div>
+      ) : (
+        children
+      )}
+    </td>
+  );
+}
 
 export function FindGame() {
   const { data: library, response } = useQueryShelvedGames();
@@ -210,14 +223,16 @@ export function FindGame() {
       width: 320,
       sortOrder: sortKey === 'name' ? sortOrder : null,
       sorter: (a, b) => a.name.localeCompare(b.name),
+      onCell: () => ({ className: 'game-name-cell' }),
       render: (_, game) => (
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {game.kind === 'game' ? (
             <GameCover
               id={game.id}
               name={game.name}
               width={36}
               height={48}
+              rootClassName="shrink-0"
               style={{ objectFit: 'contain' }}
               preview={false}
             />
@@ -227,7 +242,10 @@ export function FindGame() {
           {rowState(game) === 'contained' && (
             <CornerDownRight size={14} className="shrink-0" aria-hidden="true" />
           )}
-          <Link to={`/${game.kind === 'game' ? 'games' : 'boxes'}/${encodeURIComponent(game.id)}`}>
+          <Link
+            className="min-w-0 break-words"
+            to={`/${game.kind === 'game' ? 'games' : 'boxes'}/${encodeURIComponent(game.id)}`}
+          >
             {game.name}
           </Link>
         </div>
@@ -505,7 +523,7 @@ export function FindGame() {
             expandedRowKeys: expanded,
             onExpandedRowsChange: (keys) => updateParams({ expanded: keys.length ? keys.map(String) : [''] }),
           }}
-          components={{ ExpandIcon: boxExpandIcon }}
+          components={{ ExpandIcon: boxExpandIcon, body: { cell: GameTableCell } }}
           rowSelection={{
             selectedRowKeys: selected,
             preserveSelectedRowKeys: true,

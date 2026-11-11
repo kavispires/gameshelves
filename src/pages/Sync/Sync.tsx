@@ -24,6 +24,7 @@ export function Sync() {
   const [complete, setComplete] = useState(false);
   const [deletions, setDeletions] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [confirmingRefresh, setConfirmingRefresh] = useState(false);
   const [success, setSuccess] = useState(false);
   const [files, setFiles] = useState<UploadFile<unknown>[]>([]);
   const busy = reading || save.isPending || query.isFetching;
@@ -87,6 +88,20 @@ export function Sync() {
           }}
         >
           Reload saved library
+        </Button>
+      </section>
+      <section aria-label="App browser refresh" className="mb-8">
+        <Typography.Title level={2}>App browser refresh</Typography.Title>
+        <p>
+          Reload the entire app to clear its in-memory data and load saved data again. Unsaved changes will be
+          lost. Your saved library, friends and sign-in are not cleared.
+        </p>
+        <p>
+          To also bypass cached files in Chrome/Firefox, use Cmd + Shift + R (Mac) or Ctrl + Shift + R
+          (Windows/Linux). In Safari, use Option + Cmd + R.
+        </p>
+        <Button icon={<RefreshCw />} disabled={busy} onClick={() => setConfirmingRefresh(true)}>
+          Refresh app
         </Button>
       </section>
       <Typography.Title level={2}>Import BGG collection</Typography.Title>
@@ -207,6 +222,17 @@ export function Sync() {
           </div>
         </section>
       )}
+      <Modal
+        title="Refresh the app?"
+        open={confirmingRefresh}
+        onCancel={() => setConfirmingRefresh(false)}
+        onOk={() => window.location.reload()}
+        okText="Refresh app"
+        okButtonProps={{ disabled: busy, icon: <RefreshCw /> }}
+      >
+        <p>Unsaved changes, including any CSV import preview, will be discarded.</p>
+        <p>This reloads the whole page without deleting saved data or signing you out.</p>
+      </Modal>
       <Modal
         title={preview?.base.legacy ? 'Confirm library migration' : 'Confirm collection import'}
         open={confirming}
