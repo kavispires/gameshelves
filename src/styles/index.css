@@ -32,6 +32,41 @@ ul {
   margin: 0;
 }
 
+.game-row-box {
+  --game-row-background: #edf9f4;
+  --game-row-hover: #e1f4eb;
+  --game-row-border: #82b8ab;
+}
+
+.game-row-unassigned {
+  --game-row-background: #f3f5f7;
+  --game-row-hover: #e8edf2;
+  --game-row-border: #c1c8cc;
+}
+
+.game-row-contained {
+  --game-row-background: #fff8e6;
+  --game-row-hover: #fff0cc;
+  --game-row-border: #e2bf70;
+}
+
+.game-row-legend {
+  padding: 0 1rem 1rem;
+}
+
+.game-row-key {
+  background: var(--game-row-background);
+  border: 1px solid var(--game-row-border);
+}
+
+.find-game-table .ant-table-tbody > tr.game-row:not(.ant-table-row-selected) > td {
+  background: var(--game-row-background);
+}
+
+.find-game-table .ant-table-tbody > tr.game-row:not(.ant-table-row-selected):hover > td {
+  background: var(--game-row-hover);
+}
+
 .shelves-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

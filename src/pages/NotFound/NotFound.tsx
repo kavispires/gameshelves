@@ -1,9 +1,9 @@
 import { Button, Result } from 'antd';
 import { Content } from 'components';
-import { useNavigate } from 'react-router-dom';
+import { useBackNavigation } from 'hooks/useBackNavigation';
 
 export function NotFound() {
-  const navigate = useNavigate();
+  const back = useBackNavigation('/');
 
   return (
     <Content centered>
@@ -12,8 +12,8 @@ export function NotFound() {
         title="404"
         subTitle="Sorry, the page you visited does not exist."
         extra={
-          <Button type="primary" onClick={() => navigate('/')}>
-            Back Home
+          <Button type="primary" onClick={back}>
+            Back
           </Button>
         }
       />

@@ -288,6 +288,52 @@ export function moveBoxes(library: Library, ids: string[], shelfId: string): Lib
   return next;
 }
 
+export function groupGames(library: Library, ids: string[], leaderId: string): LibraryContent {
+  if (!library.revision || library.legacy) {
+    throw new Error('Import and migrate the library in Settings before grouping games.');
+  }
+  const selected = new Set(ids);
+  if (selected.size < 2) throw new Error('Select at least two games to group.');
+  for (const id of selected) {
+    if (!Object.hasOwn(library.games, id)) throw new Error(`Unknown game ${id}.`);
+  }
+  if (!selected.has(leaderId)) throw new Error('Choose a main game from the selected games.');
+
+  const moving = new Set(selected);
+  const removed = new Set<string>();
+  for (const box of Object.values(library.boxes)) {
+    if (box.mainGameId !== null && selected.has(box.id)) {
+      for (const id of box.contains) moving.add(id);
+      if (box.id !== leaderId) removed.add(box.id);
+    }
+  }
+
+  const updatedAt = Date.now();
+  const boxes: Record<string, GameBox> = {};
+  for (const box of Object.values(library.boxes)) {
+    if (removed.has(box.id) || box.id === leaderId) continue;
+    const contains = box.contains.filter((id) => !moving.has(id));
+    boxes[box.id] = contains.length === box.contains.length ? box : { ...box, contains, updatedAt };
+  }
+  const existing = library.boxes[leaderId];
+  const contains = [...new Set([leaderId, ...(existing?.contains ?? []), ...moving])];
+  boxes[leaderId] = existing
+    ? { ...existing, contains, updatedAt }
+    : { id: leaderId, contains, shelfId: 'unshelved', size: 'unknown', updatedAt };
+  for (const box of Object.values(boxes)) {
+    if (box.relatedEntries?.some((id) => removed.has(id))) {
+      boxes[box.id] = {
+        ...box,
+        relatedEntries: box.relatedEntries.filter((id) => !removed.has(id)),
+        updatedAt,
+      };
+    }
+  }
+  const next = { games: library.games, boxes };
+  libraryDocuments(next, '00000000-0000-0000-0000-000000000000');
+  return next;
+}
+
 export function updateBox(
   library: Library,
   id: string,

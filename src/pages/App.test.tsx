@@ -74,7 +74,398 @@ function tableLibrary(count: number): Library {
   return { ...library, games, boxes };
 }
 
+function treeLibrary(): Library {
+  const base = tableLibrary(5);
+  base.games['1'] = { ...base.games['1'], name: 'An exceptionally long game box' };
+  base.games['2'] = { ...base.games['2'], name: 'Hidden expansion', type: 'expansion' };
+  base.games['4'] = { ...base.games['4'], type: 'promo' };
+  base.boxes['1'] = { ...base.boxes['1'], contains: ['1', '2'] };
+  delete base.boxes['2'];
+  delete base.boxes['3'];
+  delete base.boxes['4'];
+  base.boxes.promos = { ...promosLibrary.boxes.promos, contains: ['4'] };
+  base.boxes.spare = {
+    ...promosLibrary.boxes.promos,
+    mainGameId: null,
+    id: 'spare',
+    name: 'Spare container',
+    contains: [],
+  };
+  return base;
+}
+
 describe('modernized routes and Ant Design controls', () => {
+  it('uses history rather than route indexes when going back through shelf, box and game details', async () => {
+    await navigate('/games/1?from=details');
+    await screen.findByLabelText('Image URL');
+    fireEvent.click(screen.getByRole('link', { name: 'Test Game' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/boxes/1'));
+    fireEvent.click(screen.getByRole('link', { name: 'View all boxes in this location' }));
+    await screen.findByRole('heading', { name: 'East Wall Left Cabinet 0' });
+    fireEvent.click(screen.getByRole('link', { name: 'Back' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/boxes/1'));
+    await screen.findByLabelText('Image URL');
+    fireEvent.click(screen.getByRole('link', { name: 'Back' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/games/1?from=details'));
+    await screen.findByLabelText('Image URL');
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['/games/1', '/'],
+    ['/boxes/1', '/'],
+    ['/shelves/ew-cl-0', '/shelves'],
+    ['/missing-page', '/'],
+  ])('provides a safe Back fallback when directly opening %s', async (path, fallback) => {
+    window.history.replaceState(null, '', `#${path}`);
+    await navigate(path);
+    const back = await screen.findByRole(path === '/missing-page' ? 'button' : 'link', { name: 'Back' });
+    fireEvent.click(back);
+    await waitFor(() => expect(window.location.hash).toBe(`#${fallback}`));
+    expect(
+      await screen.findByRole('heading', { name: fallback === '/shelves' ? 'Shelves' : 'Find Game' }),
+    ).toBeInTheDocument();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it.each(['browser', 'link'])(
+    'restores every Find Game table setting using %s Back navigation',
+    async (method) => {
+      const base = tableLibrary(35);
+      base.games['36'] = { ...base.games['1'], id: '36', name: 'Included expansion', type: 'expansion' };
+      base.boxes['5'] = { ...base.boxes['5'], contains: ['5', '36'] };
+      delete base.boxes['35'];
+      service.getLibrary.mockResolvedValue(base);
+      await navigate('/?pageSize=25&from=bookmark');
+      await screen.findByRole('table');
+      fireEvent.click(screen.getByRole('radio', { name: 'Boxes' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Search games' }), { target: { value: 'Box' } });
+      fireEvent.click(screen.getByRole('columnheader', { name: 'Game' }));
+      fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
+      const mainRow = screen.getByRole('row', { name: 'Box 05: Physical box' });
+      fireEvent.click(within(mainRow).getByRole('button', { name: 'Collapse row' }));
+      fireEvent.click(within(mainRow).getByRole('button', { name: 'Expand row' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 05' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select Included expansion' }));
+      const address = window.location.hash;
+      const dataRows = () =>
+        screen
+          .getAllByRole('row')
+          .map((row) => row.getAttribute('aria-label'))
+          .filter(Boolean);
+      const before = dataRows();
+      expect(before).toHaveLength(10);
+      const query = new URLSearchParams(address.split('?')[1]);
+      expect(query.get('view')).toBe('boxes');
+      expect(query.get('page')).toBe('2');
+      expect(query.get('pageSize')).toBe('25');
+      expect(query.get('sort')).toBe('name');
+      expect(query.get('order')).toBe('descend');
+      expect(query.getAll('expanded')).toEqual(['5']);
+      expect(query.getAll('selected')).toEqual(['5', '36']);
+      expect(query.get('from')).toBe('bookmark');
+      fireEvent.click(within(mainRow).getByRole('link', { name: 'Box 05' }));
+      await screen.findByRole('heading', { name: 'Original box' });
+      if (method === 'link') fireEvent.click(screen.getByRole('link', { name: 'Back' }));
+      else await act(async () => window.history.back());
+      await waitFor(() => expect(window.location.hash).toBe(address));
+      await screen.findByRole('table');
+      expect(dataRows()).toEqual(before);
+      expect(screen.getByRole('radio', { name: 'Boxes' })).toBeChecked();
+      expect(screen.getByRole('textbox', { name: 'Search games' })).toHaveValue('Box');
+      expect(screen.getByRole('columnheader', { name: 'Game' })).toHaveAttribute('aria-sort', 'descending');
+      expect(screen.getByTitle('2')).toHaveClass('ant-pagination-item-active');
+      expect(screen.getByRole('checkbox', { name: 'Select Box 05' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Select Included expansion' })).toBeChecked();
+      expect(screen.getByText('2 selected')).toBeInTheDocument();
+      expect(service.getLibrary).toHaveBeenCalledTimes(1);
+      expect(service.saveLibrary).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rehydrates explicitly collapsed boxes and cleared sorting while ignoring invalid selection IDs', async () => {
+    const base = treeLibrary();
+    service.getLibrary.mockResolvedValue(base);
+    await navigate(
+      '/?view=boxes&search=Hidden&expanded=&sort=none&selected=2&selected=missing&selected=promos',
+    );
+    const main = await screen.findByRole('row', { name: `${base.games['1'].name}: Physical box` });
+    expect(within(main).getByRole('button', { name: 'Expand row' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Select Hidden expansion' })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Game' })).not.toHaveAttribute('aria-sort');
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    const address = window.location.hash;
+    fireEvent.click(within(main).getByRole('link', { name: base.games['1'].name }));
+    await screen.findByRole('heading', { name: 'Original box' });
+    await act(async () => window.history.back());
+    await waitFor(() => expect(window.location.hash).toBe(address));
+    await screen.findByRole('table');
+    expect(screen.queryByRole('checkbox', { name: 'Select Hidden expansion' })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Game' })).not.toHaveAttribute('aria-sort');
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('shows box item counts, truncated names with tooltips and expandable rows for all physical boxes', async () => {
+    const base = treeLibrary();
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    await screen.findByRole('columnheader', { name: 'Items' });
+    const mainRow = screen.getByRole('row', { name: `${base.games['1'].name}: Physical box` });
+    expect(mainRow).toHaveClass('game-row-box');
+    expect(within(mainRow).getByText('2')).toBeInTheDocument();
+    const contained = screen.getByRole('row', { name: 'Hidden expansion: Inside another box' });
+    expect(contained).toHaveClass('game-row-contained');
+    expect(within(contained).getByText('-')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'Box 03: Unassigned' })).toHaveClass('game-row-unassigned');
+    const boxLink = within(mainRow).getByRole('link', { name: `Box: ${base.games['1'].name}` });
+    expect(Array.from(boxLink.textContent ?? '')).toHaveLength(15);
+    expect(boxLink.textContent).toBe('An exceptional\u2026');
+    fireEvent.mouseEnter(boxLink);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(base.games['1'].name);
+    fireEvent.mouseLeave(boxLink);
+    fireEvent.focus(boxLink);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(base.games['1'].name);
+    fireEvent.blur(boxLink);
+    const promo = screen.getByRole('row', { name: 'Box 04: Inside another box' });
+    expect(within(promo).getByRole('link', { name: 'Box: Promos shoe box' })).toHaveTextContent(
+      'Promos shoe box',
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Boxes' }));
+    expect(screen.getByText('4 boxes')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Box 03' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Hidden expansion' })).not.toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole('row', { name: `${base.games['1'].name}: Physical box` })).getByRole('button', {
+        name: 'Expand row',
+      }),
+    );
+    expect(
+      await screen.findByRole('row', { name: 'Hidden expansion: Inside another box' }),
+    ).toBeInTheDocument();
+    const container = screen.getByRole('row', { name: 'Promos shoe box: Physical box' });
+    expect(within(container).getByRole('link', { name: 'Promos shoe box' })).toHaveAttribute(
+      'href',
+      '#/boxes/promos',
+    );
+    expect(within(container).getByRole('checkbox', { name: 'Select Promos shoe box' })).toBeDisabled();
+    expect(within(container).queryByRole('link', { name: /BoardGameGeek/ })).not.toBeInTheDocument();
+    fireEvent.click(within(container).getByRole('button', { name: 'Expand row' }));
+    expect(await screen.findByRole('row', { name: 'Box 04: Inside another box' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('row', { name: 'Spare container: Physical box' })).getByText('0'),
+    ).toBeInTheDocument();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
+  it('finds contained games in Boxes view and groups selected contents across views without selecting their containers', async () => {
+    const base = treeLibrary();
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Hidden expansion' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Boxes' }));
+    const search = screen.getByRole('textbox', { name: 'Search games' });
+    fireEvent.change(search, { target: { value: 'Hidden' } });
+    expect(await screen.findByRole('checkbox', { name: 'Select Hidden expansion' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: `Select ${base.games['1'].name}` })).not.toBeChecked();
+    expect(screen.getByText('1 box')).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: '' } });
+    fireEvent.click(
+      within(screen.getByRole('row', { name: 'Promos shoe box: Physical box' })).getByRole('button', {
+        name: 'Expand row',
+      }),
+    );
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Box 04' }));
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Group in a box' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Main game' }));
+    fireEvent.click(await screen.findByTitle('Box 04'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Group games' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const next = service.saveLibrary.mock.lastCall?.[1];
+    expect(next?.boxes['1'].contains).toEqual(['1']);
+    expect(next?.boxes.promos.contains).toEqual([]);
+    expect(next?.boxes['4']).toMatchObject({ contains: ['4', '2'], shelfId: 'unshelved' });
+    expect(next?.games).toEqual(base.games);
+    expect(screen.getByRole('radio', { name: 'Boxes' })).toBeChecked();
+    expect(await screen.findByText('0 selected')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).has('selected')).toBe(false);
+    const newBox = screen.getByRole('row', { name: 'Box 04: Physical box' });
+    expect(within(newBox).getByText('2')).toBeInTheDocument();
+    fireEvent.click(within(newBox).getByRole('button', { name: 'Expand row' }));
+    expect(
+      within(await screen.findByRole('row', { name: 'Hidden expansion: Inside another box' })).getByRole(
+        'link',
+        { name: 'Box: Box 04' },
+      ),
+    ).toBeInTheDocument();
+    expect(service.saveLibrary).toHaveBeenCalledTimes(1);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists every game, retains selection across pages/search and creates an unshelved leader box', async () => {
+    const base = tableLibrary(13);
+    base.games['14'] = { ...base.games['1'], id: '14', name: 'Carried Expansion', type: 'expansion' };
+    base.boxes['1'] = { ...base.boxes['1'], contains: ['1', '14'] };
+    delete base.boxes['13'];
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    await screen.findByRole('table');
+    expect(screen.getByText('14 games')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Board game shelves' })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Shelf location' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Box 01' })).toHaveAttribute('src', base.games['1'].thumbnail);
+    expect(screen.getByRole('link', { name: 'View Box 01 on BoardGameGeek' })).toHaveAttribute(
+      'href',
+      'https://boardgamegeek.com/boardgame/1',
+    );
+    const firstRow = screen.getByRole('link', { name: 'Box 01' }).closest('tr');
+    if (!firstRow) throw new Error('The game table row is missing.');
+    expect(within(firstRow).getByText('base')).toBeInTheDocument();
+    expect(within(firstRow).getByRole('link', { name: 'East shelf' })).toHaveAttribute(
+      'href',
+      '#/shelves?view=table&storage=east',
+    );
+    expect(within(firstRow).getByRole('link', { name: 'Left Cabinet 0' })).toHaveAttribute(
+      'href',
+      '#/shelves/ew-cl-0',
+    );
+    const group = screen.getByRole('button', { name: 'Group in a box' });
+    expect(group).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 01' }));
+    expect(group).toBeDisabled();
+    fireEvent.keyDown(within(screen.getByTitle('2')).getByRole('button'), { key: 'Enter', keyCode: 13 });
+    expect(
+      within(screen.getByRole('row', { name: 'Box 13: Unassigned' })).getAllByText('Unassigned'),
+    ).toHaveLength(2);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 13' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search games' }), { target: { value: 'Box 01' } });
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    fireEvent.click(group);
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    fireEvent.click(group);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'Group games' })).toBeDisabled();
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Main game' }));
+    fireEvent.click(await screen.findByTitle('Box 13'));
+    const preview = within(dialog).getByRole('region', { name: 'Grouping preview' });
+    expect(within(preview).getByText('Create new box: Box 13')).toBeInTheDocument();
+    expect(within(preview).getByText('Carried Expansion')).toBeInTheDocument();
+    expect(within(preview).getByText('Location: Yet to be shelved')).toBeInTheDocument();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Group games' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const next = service.saveLibrary.mock.lastCall?.[1];
+    expect(next?.games).toEqual(base.games);
+    expect(next?.boxes['13']).toEqual({
+      id: '13',
+      contains: ['13', '1', '14'],
+      size: 'unknown',
+      shelfId: 'unshelved',
+      updatedAt: expect.any(Number),
+    });
+    expect(next?.boxes).not.toHaveProperty('1');
+    expect(next?.boxes['3']).toEqual(base.boxes['3']);
+    expect(await screen.findByText('0 selected')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box: Box 13' })).toHaveAttribute('href', '#/boxes/13');
+    expect(screen.getByRole('link', { name: 'Unshelved' })).toHaveAttribute(
+      'href',
+      '#/shelves?view=table&storage=unshelved',
+    );
+    expect(screen.getByRole('link', { name: 'Yet to be shelved' })).toHaveAttribute(
+      'href',
+      '#/shelves/unshelved',
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search games' }), {
+      target: { value: 'Box 13' },
+    });
+    expect(screen.getAllByRole('link', { name: 'Box: Box 13' })).toHaveLength(3);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search games' }), {
+      target: { value: 'Carried Expansion' },
+    });
+    expect(screen.getByRole('link', { name: 'Carried Expansion' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Box: Box 13' })).toBeInTheDocument();
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+    expect(base.boxes['1'].contains).toEqual(['1', '14']);
+  });
+
+  it('previews carried contents, preserves an existing leader and retries grouping without allowing pending edits', async () => {
+    const base = tableLibrary(5);
+    base.boxes['1'] = {
+      ...base.boxes['1'],
+      contains: ['1', '2'],
+      dimensions: { width: 300, height: 80, depth: 200 },
+    };
+    base.boxes['3'] = { ...base.boxes['3'], contains: ['3', '4'] };
+    delete base.boxes['2'];
+    delete base.boxes['4'];
+    service.getLibrary.mockResolvedValue(base);
+    await navigate('/');
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Box 01' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Box 03' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Group in a box' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.mouseDown(within(dialog).getByRole('combobox', { name: 'Main game' }));
+    fireEvent.click(await screen.findByTitle('Box 01'));
+    const preview = within(dialog).getByRole('region', { name: 'Grouping preview' });
+    expect(within(preview).getByText('Use existing box: Box 01')).toBeInTheDocument();
+    expect(within(preview).getByText('Box 02')).toBeInTheDocument();
+    expect(within(preview).getByText('Box 04')).toBeInTheDocument();
+    service.saveLibrary.mockRejectedValueOnce(new Error('Grouping write failed'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Group games' }));
+    expect(await within(dialog).findByText('Grouping write failed')).toBeInTheDocument();
+    expect(within(dialog).getByRole('combobox', { name: 'Main game' })).toBeEnabled();
+    expect(screen.getAllByRole('link', { name: 'Box: Box 03' })).toHaveLength(2);
+    let finish!: () => void;
+    service.saveLibrary.mockImplementationOnce(
+      (_base, next) =>
+        new Promise((resolve) => {
+          finish = () => resolve({ ...next, revision: 'grouped' });
+        }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Group games' }));
+    await waitFor(() => expect(service.saveLibrary).toHaveBeenCalledTimes(2));
+    expect(within(dialog).getByRole('combobox', { name: 'Main game' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeDisabled();
+    fireEvent.keyDown(dialog, { key: 'Escape', keyCode: 27 });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await act(async () => finish());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(service.saveLibrary.mock.lastCall?.[1]).toEqual({
+      games: base.games,
+      boxes: {
+        '1': { ...base.boxes['1'], contains: ['1', '2', '3', '4'], updatedAt: expect.any(Number) },
+        '5': base.boxes['5'],
+      },
+    });
+    expect(screen.queryByRole('link', { name: 'Box: Box 03' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Box: Box 01' })).toHaveLength(4);
+    expect(service.getLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps legacy games searchable but disables grouping until migration', async () => {
+    service.getLibrary.mockResolvedValue({
+      revision: null,
+      games: {},
+      boxes: {},
+      legacy: { shelves: { '1': shelfEntry }, images: {} },
+    });
+    await navigate('/');
+    expect(await screen.findByRole('link', { name: 'Test Game' })).toHaveAttribute('href', '#/games/1');
+    expect(screen.getByRole('link', { name: 'Box: Test Game' })).toHaveAttribute('href', '#/boxes/1');
+    expect(screen.getByRole('checkbox', { name: 'Select Test Game' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Group in a box' })).toBeDisabled();
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
   it('restores table pagination, sorting, filters, search and view after browser Back', async () => {
     service.getLibrary.mockResolvedValue(tableLibrary(60));
     await navigate('/shelves?view=table&pageSize=25');
@@ -153,7 +544,7 @@ describe('modernized routes and Ant Design controls', () => {
   });
 
   it('keeps overview furniture colors neutral and highlights only a selected shelf location', async () => {
-    await navigate('/');
+    await navigate('/shelves');
     const overview = await screen.findByRole('region', { name: 'Board game shelves' });
     expect(overview.querySelectorAll('[data-active-shelf]')).toHaveLength(0);
 
@@ -170,10 +561,9 @@ describe('modernized routes and Ant Design controls', () => {
     await navigate('/');
     expect(await screen.findByRole('heading', { name: 'Find Game' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Find Game' })).toHaveAttribute('aria-current', 'page');
-    const search = await screen.findByRole('combobox');
+    const search = await screen.findByRole('textbox', { name: 'Search games' });
     fireEvent.change(search, { target: { value: 'Test' } });
-    fireEvent.mouseDown(search);
-    fireEvent.click(await screen.findByText('Test Game [base]'));
+    fireEvent.click(await screen.findByRole('link', { name: 'Test Game' }));
     expect(await screen.findByRole('heading', { name: 'Original box' })).toBeInTheDocument();
     expect(window.location.hash).toBe('#/games/1');
     expect(screen.getByRole('link', { name: 'Find Game' })).toHaveAttribute('aria-current', 'page');
@@ -250,7 +640,7 @@ describe('modernized routes and Ant Design controls', () => {
     fireEvent.click(path);
     expect(await screen.findByRole('heading', { name: 'East Wall Left Cabinet 0' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Test Game' })[0]).toHaveAttribute('href', '#/boxes/1');
-    fireEvent.click(screen.getByRole('link', { name: 'All shelves' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Back' }));
     fireEvent.keyDown(await screen.findByRole('button', { name: 'Select shelf ww-cl-0' }), { key: 'Enter' });
     expect(await screen.findByRole('heading', { name: 'West Wall Left Cabinet 0' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add boxes' }));
@@ -295,10 +685,9 @@ describe('modernized routes and Ant Design controls', () => {
       );
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
-      const search = await screen.findByRole('combobox', { name: 'Find a game' });
+      const search = await screen.findByRole('textbox', { name: 'Search games' });
       fireEvent.change(search, { target: { value: 'Test' } });
-      fireEvent.mouseDown(search);
-      fireEvent.click(await screen.findByText('Test Game [base]'));
+      fireEvent.click(await screen.findByRole('link', { name: 'Test Game' }));
       expect(await screen.findByText(`Current location: ${locationName}`)).toBeInTheDocument();
       expect(screen.getByRole('img', { name: svgName })).toBeInTheDocument();
       for (const other of [
@@ -442,10 +831,9 @@ describe('modernized routes and Ant Design controls', () => {
       boxes: { '1': { ...library.boxes['1'], updatedAt: expect.any(Number) } },
     });
     fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
-    const search = await screen.findByRole('combobox', { name: 'Find a game' });
+    const search = await screen.findByRole('textbox', { name: 'Search games' });
     fireEvent.change(search, { target: { value: 'Test' } });
-    fireEvent.mouseDown(search);
-    fireEvent.click(await screen.findByText('Test Game [base]'));
+    fireEvent.click(await screen.findByRole('link', { name: 'Test Game' }));
     expect(await screen.findByLabelText('Image URL')).toHaveValue(url);
     expect(screen.getByRole('img', { name: 'Test Game' })).toHaveAttribute('src', url);
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
@@ -570,10 +958,9 @@ describe('modernized routes and Ant Design controls', () => {
     });
     expect(service.getLibrary).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('link', { name: 'Find Game' }));
-    const search = await screen.findByRole('combobox');
+    const search = await screen.findByRole('textbox', { name: 'Search games' });
     fireEvent.change(search, { target: { value: 'Imported' } });
-    fireEvent.mouseDown(search);
-    fireEvent.click(await screen.findByText('Imported Game [base]'));
+    fireEvent.click(await screen.findByRole('link', { name: 'Imported Game' }));
     expect(await screen.findByText('Not assigned to a box.')).toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import { catalogGame, library, promosLibrary, shelfEntry } from '../test/fixture
 import type { Library } from '../types/library';
 import {
   findBox,
+  groupGames,
   libraryDocuments,
   moveBoxes,
   prepareImport,
@@ -12,6 +13,81 @@ import {
 } from './library';
 
 describe('catalog and physical boxes', () => {
+  it('groups whole selected-main boxes, preserves the leader and removes obsolete relationships without deleting games', () => {
+    const base: Library = {
+      ...library,
+      games: Object.fromEntries(
+        Array.from({ length: 7 }, (_, index) => {
+          const id = String(index + 1);
+          return [id, { ...catalogGame, id }];
+        }),
+      ),
+      boxes: {
+        '1': {
+          ...library.boxes['1'],
+          contains: ['1', '2'],
+          dimensions: { width: 300, height: 80, depth: 200 },
+          relatedEntries: ['3', '6'],
+        },
+        '3': { ...library.boxes['1'], id: '3', contains: ['3', '4'] },
+        '6': { ...library.boxes['1'], id: '6', contains: ['6'], relatedEntries: ['3'] },
+        promos: { ...promosLibrary.boxes.promos, contains: ['5'] },
+      },
+    };
+    const original = structuredClone(base);
+    const next = groupGames(base, ['1', '3', '4', '5', '7', '3'], '1');
+    expect(next.games).toBe(base.games);
+    expect(next.boxes['1']).toEqual({
+      ...base.boxes['1'],
+      contains: ['1', '2', '3', '4', '5', '7'],
+      relatedEntries: ['6'],
+      updatedAt: expect.any(Number),
+    });
+    expect(next.boxes).not.toHaveProperty('3');
+    expect(next.boxes['6']).toMatchObject({ contains: ['6'], relatedEntries: [] });
+    expect(next.boxes.promos).toMatchObject({ contains: [], mainGameId: null, name: 'Promos shoe box' });
+    expect(base).toEqual(original);
+  });
+
+  it('creates an unshelved leader box and moves only selected non-main games from other boxes', () => {
+    const base: Library = {
+      ...library,
+      games: {
+        ...library.games,
+        '2': { ...catalogGame, id: '2' },
+        '3': { ...catalogGame, id: '3' },
+        '4': { ...catalogGame, id: '4' },
+      },
+      boxes: {
+        '1': { ...library.boxes['1'], contains: ['1', '2', '4'] },
+        '3': { ...library.boxes['1'], id: '3', contains: ['3'] },
+      },
+    };
+    const next = groupGames(base, ['3', '2'], '2');
+    expect(next.boxes['2']).toEqual({
+      id: '2',
+      contains: ['2', '3'],
+      shelfId: 'unshelved',
+      size: 'unknown',
+      updatedAt: expect.any(Number),
+    });
+    expect(next.boxes['1']).toMatchObject({ contains: ['1', '4'] });
+    expect(next.boxes).not.toHaveProperty('3');
+    expect(next.games).toBe(base.games);
+    expect(base.boxes['1'].contains).toEqual(['1', '2', '4']);
+    expect(groupGames(base, ['1', '2'], '2').boxes['2'].contains).toEqual(['2', '1', '4']);
+  });
+
+  it('rejects invalid grouping selections and unmigrated libraries without changing the catalog', () => {
+    expect(() => groupGames(library, ['1', '1'], '1')).toThrow('at least two');
+    expect(() => groupGames(library, ['1', 'missing'], '1')).toThrow('Unknown game');
+    expect(() => groupGames(library, ['1', '__proto__'], '1')).toThrow('Unknown game');
+    const base = { ...library, games: { ...library.games, '2': { ...catalogGame, id: '2' } } };
+    expect(() => groupGames(base, ['1', '2'], '3')).toThrow('main game');
+    expect(() => groupGames({ ...base, revision: null }, ['1', '2'], '1')).toThrow('migrate');
+    expect(library.boxes['1'].contains).toEqual(['1']);
+  });
+
   it('moves original and standalone boxes atomically without changing games, contents or other box metadata', () => {
     const base: Library = {
       ...library,

@@ -1,9 +1,9 @@
 import { Alert, App, Button, Layout, Modal, Radio, Select, Typography } from 'antd';
-import { ShelvesSVG } from 'components';
+import { BackLink, ShelvesSVG } from 'components';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { useState } from 'react';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SHELVES_IDS } from 'utils/constants';
 import { moveBoxes, updateBox } from 'utils/library';
 import type { Library, LibraryContent } from '../../types/library';
@@ -76,7 +76,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
 
   return (
     <Layout.Content className="box-border mx-auto w-full min-w-0 max-w-[1600px] p-4 sm:p-6">
-      {shelfId && <Link to="/shelves">All shelves</Link>}
+      {shelfId && <BackLink fallback="/shelves" />}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <Typography.Title level={1} className="!mb-0 !text-3xl">
           {shelfId ? SHELVES_IDS[shelfId].description : 'Shelves'}

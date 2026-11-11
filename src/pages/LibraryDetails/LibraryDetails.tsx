@@ -11,7 +11,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { GameCover, ShelvesSVG } from 'components';
+import { BackLink, GameCover, ShelvesSVG } from 'components';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
 import { useState } from 'react';
@@ -146,9 +146,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
 
   return (
     <Layout.Content className="mx-auto w-full max-w-2xl px-4 py-6">
-      <Link to="/" className="mb-4 inline-block text-sm">
-        Back to library
-      </Link>
+      <BackLink fallback="/" className="mb-4 inline-block text-sm" />
       <header className="mb-5 flex items-start gap-4 rounded-2xl border border-info/15 bg-info/5 p-4 sm:gap-6 sm:p-6">
         {game && (
           <div className="w-24 shrink-0 sm:w-32">

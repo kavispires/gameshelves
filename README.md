@@ -10,13 +10,13 @@ A base game, its expansions, and its promos can live together in one box, with o
 Sign in with an existing Firebase email/password account. All signed-in accounts share one
 global library; signing in does not create a separate collection.
 
-| Page           | What it does                                                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Find Game**  | Search every imported game, including expansions, promos and games not assigned to a box. Open a result to see its box and shelf location. |
-| **Game Night** | Placeholder for planning a game night and choosing games.                                                                                  |
-| **Shelves**    | Switch between shelf illustrations and a full box table. Open a shelf to browse its boxes, add boxes or change their locations.            |
-| **Friends**    | Placeholder for friends and their game ratings.                                                                                            |
-| **Settings**   | Upload a complete BGG collection CSV, review changes and confirm the import. Reload saved data to pick up changes from another device.     |
+| Page           | What it does                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Find Game**  | Search every game or browse expandable boxes. Select games and choose a main game to group them in one physical box.                   |
+| **Game Night** | Placeholder for planning a game night and choosing games.                                                                              |
+| **Shelves**    | Switch between shelf illustrations and a full box table. Open a shelf to browse its boxes, add boxes or change their locations.        |
+| **Friends**    | Placeholder for friends and their game ratings.                                                                                        |
+| **Settings**   | Upload a complete BGG collection CSV, review changes and confirm the import. Reload saved data to pick up changes from another device. |
 
 ## Your catalog and your boxes
 
@@ -33,6 +33,28 @@ Each game can live in at most one box; boxes cannot contain other boxes.
 
 New games start **not assigned to a box**. From a game's details you can create its original box
 or assign it to an existing box. Removing a box assignment does not delete the game.
+In **Find Game**, search game or box names and use the checkboxes to select games across pages
+and search results. The table shows each game's cover, type, box, BGG link and a clickable
+**Storage / Shelf** location breadcrumb. Unboxed games show **Unassigned**.
+Switch **All games / Boxes** to browse the flat catalog or just physical boxes, including named
+containers. Expand a box to see its other games. Search also finds contained games and opens their
+box. **Items** counts every game in an original box (including its main game), or in a named container.
+Box-column names are limited to 15 characters including an ellipsis; hover or focus for the full name.
+Rows are green for physical boxes, gray for unassigned games and amber for games inside another box.
+The legend explains the colors; selected rows retain their selection highlight.
+The Find Game URL keeps the view, search, page, page size, sorting, expanded boxes and selected games,
+so browser Back restores the table after visiting a game or box. Table interactions replace the
+current history entry rather than adding an entry for every checkbox or search change.
+Game, box and shelf **Back** links (and the not-found page's Back button) return to the previous
+in-app history entry, including its table settings. If a detail page was opened directly with no
+previous in-app entry, Back falls back to the library or shelf overview.
+**Group in a box** lets you choose one selected game as the main game and review
+the resulting contents before saving. Its existing box keeps its contents, location and measurements;
+if it has no box, a new unshelved box is created with unknown size and no measurements.
+When another selected game is the main game of its own box, all that box's contents move too,
+and the superseded box is removed. Selecting only an expansion or promo moves that item without
+moving the rest of its box. Empty named containers are kept. Catalog games are never deleted.
+The entire grouping is saved atomically; cancellation or a failed save leaves the library unchanged.
 You can change a game's classification, for example to promo, independently of BGG's category.
 Game details use a compact layout and show only the shelf containing that game, with its
 compartment highlighted. Boxes without a shelf assignment show the unshelved pile instead.

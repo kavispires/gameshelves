@@ -1,3 +1,4 @@
+export * from './BackLink';
 export * from './BoxSizeSelect';
 export * from './CardItem';
 export * from './ContainedGamesPanelContent';
