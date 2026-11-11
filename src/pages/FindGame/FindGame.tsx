@@ -1,4 +1,3 @@
-import { ExportOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -16,9 +15,23 @@ import {
   Typography,
 } from 'antd';
 import { GameCover } from 'components';
+import { boxExpandIcon, clearIcon, GameTypeIcon, tableIcons } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  Boxes,
+  CircleCheck,
+  ExternalLink,
+  ImageOff,
+  List,
+  ListX,
+  MapPin,
+  Package,
+  PackageOpen,
+  Search,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { GAME_TYPES, URLS } from 'utils/constants';
 import { groupGames } from 'utils/library';
@@ -39,6 +52,11 @@ const rowLabels = {
   box: 'Physical box',
   unassigned: 'Unassigned',
   contained: 'Inside another box',
+};
+const rowIcons: Record<string, ReactNode> = {
+  box: <Package />,
+  unassigned: <PackageOpen />,
+  contained: <Boxes />,
 };
 const rowState = (game: GameRow) =>
   game.boxId === game.id ? 'box' : game.boxId ? 'contained' : 'unassigned';
@@ -201,7 +219,7 @@ export function FindGame() {
               preview={false}
             />
           ) : (
-            <InboxOutlined className="text-2xl text-info" aria-hidden="true" />
+            <Package size={24} className="text-info" />
           )}
           <Link to={`/${game.kind === 'game' ? 'games' : 'boxes'}/${encodeURIComponent(game.id)}`}>
             {game.name}
@@ -217,7 +235,8 @@ export function FindGame() {
       filteredValue: view === 'games' ? typeFilters : [],
       sortOrder: sortKey === 'type' ? sortOrder : null,
       sorter: (a, b) => (a.kind === 'game' ? a.type : '').localeCompare(b.kind === 'game' ? b.type : ''),
-      render: (_, game) => (game.kind === 'game' ? <Tag>{game.type}</Tag> : '-'),
+      render: (_, game) =>
+        game.kind === 'game' ? <Tag icon={<GameTypeIcon type={game.type} />}>{game.type}</Tag> : '-',
     },
     {
       title: 'Box',
@@ -263,10 +282,24 @@ export function FindGame() {
           <Breadcrumb
             items={[
               {
-                title: <Link to={`/shelves?view=table&storage=${storage.id}`}>{storage.name}</Link>,
+                title: (
+                  <Link to={`/shelves?view=table&storage=${storage.id}`}>
+                    <span className="icon-label">
+                      <Box size={14} />
+                      {storage.name}
+                    </span>
+                  </Link>
+                ),
               },
               {
-                title: <Link to={`/shelves/${game.shelfId}`}>{shelfName(game.shelfId)}</Link>,
+                title: (
+                  <Link to={`/shelves/${game.shelfId}`}>
+                    <span className="icon-label">
+                      <MapPin size={14} />
+                      {shelfName(game.shelfId)}
+                    </span>
+                  </Link>
+                ),
               },
             ]}
           />
@@ -284,7 +317,7 @@ export function FindGame() {
             href={`https://boardgamegeek.com/boardgame/${encodeURIComponent(game.id)}`}
             target="_blank"
             rel="noopener noreferrer"
-            icon={<ExportOutlined />}
+            icon={<ExternalLink />}
             style={{ minWidth: 44, minHeight: 44 }}
             title="View on BoardGameGeek"
             aria-label={`View ${game.name} on BoardGameGeek`}
@@ -306,7 +339,10 @@ export function FindGame() {
           onSuccess: () => {
             setGrouping(false);
             updateParams({ selected: undefined });
-            notification.success({ title: 'Games grouped in box' });
+            notification.success({
+              title: 'Games grouped in box',
+              icon: <CircleCheck className="text-success" />,
+            });
           },
         },
       );
@@ -319,7 +355,9 @@ export function FindGame() {
     <Layout.Content className="box-border mx-auto w-full min-w-0 max-w-[1600px] p-4 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <Typography.Title level={1} className="!mb-0">
-          Find Game
+          <span className="icon-label">
+            <Search size={28} /> Find Game
+          </span>
         </Typography.Title>
         <Radio.Group
           aria-label="Game list view"
@@ -329,13 +367,30 @@ export function FindGame() {
             updateParams({ view: event.target.value === 'boxes' ? 'boxes' : undefined, page: undefined });
           }}
           options={[
-            { label: 'All games', value: 'games' },
-            { label: 'Boxes', value: 'boxes' },
+            {
+              label: (
+                <span className="icon-label">
+                  <List />
+                  All games
+                </span>
+              ),
+              value: 'games',
+            },
+            {
+              label: (
+                <span className="icon-label">
+                  <Boxes />
+                  Boxes
+                </span>
+              ),
+              value: 'boxes',
+            },
           ]}
         />
       </div>
       {library.legacy && (
         <Alert
+          showIcon
           type="info"
           className="mb-4"
           title="Import and migrate your library in Settings to group games."
@@ -346,10 +401,10 @@ export function FindGame() {
           <Input
             aria-label="Search games"
             className="sm:!max-w-sm"
-            prefix={<SearchOutlined aria-hidden="true" />}
+            prefix={<Search />}
             placeholder="Search games or boxes"
             value={search}
-            allowClear
+            allowClear={{ clearIcon }}
             onChange={(event) => {
               updateParams({ search: event.target.value || undefined, page: undefined, expanded: undefined });
             }}
@@ -361,11 +416,15 @@ export function FindGame() {
                 updateParams({ image: event.target.checked ? 'missing' : undefined, page: undefined })
               }
             >
-              Missing images only
+              <span className="icon-label">
+                <ImageOff />
+                Missing images only
+              </span>
             </Checkbox>
           )}
           <Typography.Text aria-live="polite">{selected.length} selected</Typography.Text>
           <Button
+            icon={<Boxes />}
             type="primary"
             disabled={disabled || selected.length < 2}
             onClick={() => {
@@ -377,6 +436,7 @@ export function FindGame() {
             Group in a box
           </Button>
           <Button
+            icon={<ListX />}
             disabled={disabled || !selected.length}
             onClick={() => updateParams({ selected: undefined })}
           >
@@ -386,7 +446,10 @@ export function FindGame() {
         <ul aria-label="Row colors" className="game-row-legend flex flex-wrap gap-2">
           {Object.entries(rowLabels).map(([state, label]) => (
             <li key={state} className={`game-row-key game-row-${state} rounded px-2 py-1 text-xs`}>
-              {label}
+              <span className="icon-label">
+                {rowIcons[state]}
+                {label}
+              </span>
             </li>
           ))}
         </ul>
@@ -394,7 +457,7 @@ export function FindGame() {
           className="find-game-table"
           rowKey="id"
           dataSource={filtered}
-          columns={columns}
+          columns={columns.map((column) => ({ ...tableIcons, ...column }))}
           size="small"
           scroll={{ x: 1140 }}
           rowClassName={(game) => `game-row game-row-${rowState(game)}`}
@@ -403,6 +466,7 @@ export function FindGame() {
             expandedRowKeys: expanded,
             onExpandedRowsChange: (keys) => updateParams({ expanded: keys.length ? keys.map(String) : [''] }),
           }}
+          components={{ ExpandIcon: boxExpandIcon }}
           rowSelection={{
             selectedRowKeys: selected,
             preserveSelectedRowKeys: true,

@@ -12,8 +12,28 @@ import {
   Typography,
 } from 'antd';
 import { BackLink, GameCover, ShelvesSVG } from 'components';
+import { clearIcon, GameTypeIcon } from 'components/icons';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
+import {
+  Boxes,
+  CalendarDays,
+  CircleCheck,
+  Clock,
+  ExternalLink,
+  Image,
+  MapPin,
+  Package,
+  PackageMinus,
+  PackagePlus,
+  Ruler,
+  Save,
+  Tags,
+  Trash2,
+  TriangleAlert,
+  Users,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BOX_SIZES, GAME_TYPES, SHELVES_IDS } from 'utils/constants';
@@ -168,20 +188,28 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           {game ? (
             <>
               <div className="mb-3 flex flex-wrap gap-1">
-                <Tag color="cyan">{game.status === 'OWN' ? 'Owned' : 'Preordered'}</Tag>
-                <Tag>{game.year || 'Year unknown'}</Tag>
-                <Tag>{game.type}</Tag>
+                <Tag
+                  color="cyan"
+                  icon={game.status === 'OWN' ? <CircleCheck size={14} /> : <Clock size={14} />}
+                >
+                  {game.status === 'OWN' ? 'Owned' : 'Preordered'}
+                </Tag>
+                <Tag icon={<CalendarDays size={14} />}>{game.year || 'Year unknown'}</Tag>
+                <Tag icon={<GameTypeIcon type={game.type} />}>{game.type}</Tag>
               </div>
               <p className="my-2 text-sm">
-                {game.minPlayerCount}–{game.maxPlayerCount} players · {game.minPlaytime}–{game.maxPlaytime}{' '}
-                minutes
+                <Users size={14} /> {game.minPlayerCount}–{game.maxPlayerCount} players · <Clock size={14} />{' '}
+                {game.minPlaytime}–{game.maxPlaytime} minutes
               </p>
               <Typography.Link
                 href={`https://boardgamegeek.com/boardgame/${encodeURIComponent(game.id)}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                View on BoardGameGeek
+                <span className="icon-label">
+                  <ExternalLink />
+                  View on BoardGameGeek
+                </span>
               </Typography.Link>
             </>
           ) : (
@@ -190,13 +218,14 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           {containing ? (
             <>
               <p className="mt-4 mb-1 text-sm">
-                Box:{' '}
+                <Package size={14} /> Box:{' '}
                 <Link to={`/boxes/${encodeURIComponent(containing.id)}`}>
                   {getBoxName(containing, library.games)}
                 </Link>
               </p>
               <p className="my-1 text-sm">
-                Current location: {SHELVES_IDS[containing.shelfId]?.description ?? containing.shelfId}
+                <MapPin size={14} /> Current location:{' '}
+                {SHELVES_IDS[containing.shelfId]?.description ?? containing.shelfId}
               </p>
             </>
           ) : (
@@ -206,6 +235,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       </header>
       {(error || save.isError) && (
         <Alert
+          showIcon
           type="error"
           title="Organization not saved"
           description={error || save.error?.message}
@@ -217,12 +247,23 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           <Card
             title={
               <Typography.Title level={2} className="!m-0 !text-lg">
-                Game details
+                <span className="icon-label">
+                  <Tags />
+                  Game details
+                </span>
               </Typography.Title>
             }
           >
             <div className="grid gap-x-4 sm:grid-cols-[160px_minmax(0,1fr)]">
-              <Form.Item label="Game classification" htmlFor="game-type">
+              <Form.Item
+                label={
+                  <span className="icon-label">
+                    <Tags />
+                    Classification
+                  </span>
+                }
+                htmlFor="game-type"
+              >
                 <Select<GameType>
                   id="game-type"
                   value={type}
@@ -230,14 +271,22 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                   options={GAME_TYPES.map((value) => ({ value, label: value }))}
                 />
               </Form.Item>
-              <Form.Item label="Image URL" htmlFor="game-image-url">
+              <Form.Item
+                label={
+                  <span className="icon-label">
+                    <Image />
+                    Image URL
+                  </span>
+                }
+                htmlFor="game-image-url"
+              >
                 <Input
                   id="game-image-url"
                   type="url"
                   value={imageUrl}
                   placeholder="https://cf.geekdo-images.com/…"
                   onChange={(event) => setImageUrl(event.target.value)}
-                  allowClear
+                  allowClear={{ clearIcon }}
                 />
               </Form.Item>
             </div>
@@ -247,6 +296,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
             </Typography.Paragraph>
             {!draft && (
               <Button
+                icon={<Save />}
                 type="primary"
                 className="mt-4"
                 loading={busy}
@@ -263,12 +313,23 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
             <Card
               title={
                 <Typography.Title level={2} className="!m-0 !text-lg">
-                  {draft.mainGameId === null ? 'Storage box' : 'Original box'}
+                  <span className="icon-label">
+                    <Package />
+                    {draft.mainGameId === null ? 'Storage box' : 'Original box'}
+                  </span>
                 </Typography.Title>
               }
             >
               <div className="grid gap-x-4 sm:grid-cols-2">
-                <Form.Item label="Box size category" htmlFor="box-size">
+                <Form.Item
+                  label={
+                    <span className="icon-label">
+                      <Package />
+                      Box size category
+                    </span>
+                  }
+                  htmlFor="box-size"
+                >
                   <Select<Exclude<BoxSize, 'none'>>
                     id="box-size"
                     value={draft.size}
@@ -279,7 +340,15 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                     }))}
                   />
                 </Form.Item>
-                <Form.Item label="Shelf location" htmlFor="box-shelf">
+                <Form.Item
+                  label={
+                    <span className="icon-label">
+                      <MapPin />
+                      Shelf location
+                    </span>
+                  }
+                  htmlFor="box-shelf"
+                >
                   <Select
                     id="box-shelf"
                     value={draft.shelfId}
@@ -321,13 +390,18 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                 ))}
               </div>
               <Typography.Paragraph type="secondary" className="text-sm">
-                Optional closed-box measurements. Enter all three or leave them empty.
+                <Ruler /> Optional closed-box measurements. Enter all three or leave them empty.
               </Typography.Paragraph>
               {draft.mainGameId !== null && (
                 <p className="text-sm">Main game: {library.games[draft.id].name}</p>
               )}
               <Form.Item
-                label={draft.mainGameId === null ? 'Games in box' : 'Additional games in box'}
+                label={
+                  <span className="icon-label">
+                    <Boxes />
+                    {draft.mainGameId === null ? 'Games in box' : 'Additional games in box'}
+                  </span>
+                }
                 htmlFor="box-contents"
               >
                 <Select
@@ -366,21 +440,25 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
                 </ul>
               )}
               <div className="flex flex-wrap gap-3 border-0 border-t border-solid border-paper pt-4">
-                <Button type="primary" loading={busy} onClick={saveBox}>
+                <Button type="primary" icon={<Save />} loading={busy} onClick={saveBox}>
                   Save box
                 </Button>
                 {ownBox ? (
                   <Popconfirm
+                    icon={<TriangleAlert className="text-warning" />}
+                    okButtonProps={{ icon: <Trash2 /> }}
+                    cancelButtonProps={{ icon: <X /> }}
                     title="Remove this box?"
                     description="All games in this box will become unassigned. No games will be deleted."
                     onConfirm={() => runEdit(() => updateBox(library, ownBox.id, null))}
                   >
-                    <Button danger disabled={busy}>
+                    <Button danger icon={<Trash2 />} disabled={busy}>
                       Remove box
                     </Button>
                   </Popconfirm>
                 ) : (
                   <Button
+                    icon={<X />}
                     onClick={() => {
                       setDraft(undefined);
                       setDimensions({});
@@ -397,12 +475,16 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       {game && !draft && !containing && (
         <Card className="!my-5">
           <Typography.Title level={2} className="!mt-0 !text-lg">
-            Organize this game
+            <span className="icon-label">
+              <Boxes />
+              Organize this game
+            </span>
           </Typography.Title>
           <p className="text-sm text-muted">
             Keep it in its original box, or add it to a box you already have.
           </p>
           <Button
+            icon={<PackagePlus />}
             disabled={busy}
             onClick={() =>
               setDraft({
@@ -432,6 +514,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
               }))}
             />
             <Button
+              icon={<PackagePlus />}
               disabled={!targetBox || busy}
               onClick={() =>
                 runEdit(() => {
@@ -453,10 +536,12 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
       )}
       {game && containing && !ownBox && (
         <Popconfirm
+          icon={<TriangleAlert className="text-warning" />}
+          cancelButtonProps={{ icon: <X /> }}
           title="Remove this game from its box?"
           description="The game will become unassigned. No games will be deleted."
           okText="Remove"
-          okButtonProps={{ danger: true }}
+          okButtonProps={{ danger: true, icon: <PackageMinus /> }}
           disabled={busy}
           onConfirm={() =>
             runEdit(() =>
@@ -469,7 +554,7 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
             )
           }
         >
-          <Button danger disabled={busy}>
+          <Button danger icon={<PackageMinus />} disabled={busy}>
             Remove from box
           </Button>
         </Popconfirm>
@@ -479,12 +564,20 @@ function GameDetails({ library, game, customBox, perShelf }: GameDetailsProps) {
           className="!mt-5"
           title={
             <Typography.Title level={2} className="!m-0 !text-lg">
-              On the shelf
+              <span className="icon-label">
+                <MapPin />
+                On the shelf
+              </span>
             </Typography.Title>
           }
         >
           <ShelvesSVG shelfId={containing.shelfId} active={[containing.shelfId]} perShelf={perShelf} />
-          <Link to={`/shelves/${containing.shelfId}`}>View all boxes in this location</Link>
+          <Link to={`/shelves/${containing.shelfId}`}>
+            <span className="icon-label">
+              <MapPin />
+              View all boxes in this location
+            </span>
+          </Link>
         </Card>
       )}
     </Layout.Content>

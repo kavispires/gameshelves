@@ -1,5 +1,6 @@
 import { App, Button, Card } from 'antd';
 import { GameCover } from 'components';
+import { CircleCheck, Save } from 'lucide-react';
 import { type ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,7 +19,10 @@ export function GameCard({ game, children, isMutated = false, save, saveResult }
 
   useEffect(() => {
     if (saveResult.isSuccess) {
-      notification.success({ title: 'Game saved successfully' });
+      notification.success({
+        title: 'Game saved successfully',
+        icon: <CircleCheck className="text-success" />,
+      });
       navigate('/');
     }
   }, [saveResult.isSuccess, navigate, notification]);
@@ -28,7 +32,14 @@ export function GameCard({ game, children, isMutated = false, save, saveResult }
       title={game.name}
       extra={
         isMutated && (
-          <Button type="primary" size="small" danger onClick={save} loading={saveResult.isPending}>
+          <Button
+            type="primary"
+            size="small"
+            danger
+            icon={<Save />}
+            onClick={save}
+            loading={saveResult.isPending}
+          >
             Save
           </Button>
         )

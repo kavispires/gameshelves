@@ -1,4 +1,3 @@
-import { DeleteOutlined, EditOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -10,6 +9,8 @@ import {
   Typography,
 } from 'antd';
 import { GameCover } from 'components';
+import { clearIcon, tableIcons } from 'components/icons';
+import { Package, Pencil, Search, Trash2, TriangleAlert, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BOX_SIZES, SHELVES_IDS } from 'utils/constants';
@@ -119,7 +120,7 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
               preview={false}
             />
           ) : (
-            <InboxOutlined className="text-2xl text-info" aria-hidden="true" />
+            <Package size={24} className="text-info" />
           )}
           <Link to={`/boxes/${encodeURIComponent(box.id)}`}>{box.name}</Link>
         </div>
@@ -207,7 +208,7 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
         <div className="flex items-center gap-1">
           <Button
             type="text"
-            icon={<EditOutlined />}
+            icon={<Pencil />}
             style={{ minWidth: 44, minHeight: 44 }}
             disabled={disabled}
             title="Edit location"
@@ -215,18 +216,20 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
             onClick={() => onEdit(box)}
           />
           <Popconfirm
+            icon={<TriangleAlert className="text-warning" />}
             title={`Delete ${box.name}?`}
             description="The box will be deleted. Its items will remain in the catalog, unassigned to a box."
             okText="Delete"
             cancelText="Cancel"
-            okButtonProps={{ danger: true, disabled }}
+            okButtonProps={{ danger: true, disabled, icon: <Trash2 /> }}
+            cancelButtonProps={{ icon: <X /> }}
             disabled={disabled}
             onConfirm={() => onDelete(box.id)}
           >
             <Button
               type="text"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 />}
               style={{ minWidth: 44, minHeight: 44 }}
               title="Delete box"
               aria-label={`Delete box ${box.name}`}
@@ -244,9 +247,9 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
         <Input
           aria-label="Search boxes"
           className="sm:!max-w-sm"
-          prefix={<SearchOutlined aria-hidden="true" />}
+          prefix={<Search />}
           placeholder="Search boxes or contained games"
-          allowClear
+          allowClear={{ clearIcon }}
           value={search}
           onChange={(event) => {
             updateParams({ search: event.target.value || undefined, page: undefined });
@@ -257,7 +260,7 @@ export function BoxTable({ boxes, disabled, onEdit, onDelete }: BoxTableProps) {
       <Table<ShelfEntry>
         rowKey="id"
         dataSource={filtered}
-        columns={columns}
+        columns={columns.map((column) => ({ ...tableIcons, ...column }))}
         size="small"
         scroll={{ x: 1232 }}
         pagination={{

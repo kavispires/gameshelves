@@ -2,6 +2,7 @@ import { Alert, App, Button, Layout, Modal, Radio, Select, Typography } from 'an
 import { BackLink, ShelvesSVG } from 'components';
 import { useSaveLibrary } from 'hooks/useLibrary';
 import { useQueryShelvedGames } from 'hooks/useQueryShelvedGames';
+import { CircleCheck, Images, MapPin, PackagePlus, Table2 } from 'lucide-react';
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SHELVES_IDS } from 'utils/constants';
@@ -60,7 +61,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
         { base: library, next },
         {
           onSuccess: () => {
-            notification.success({ title });
+            notification.success({ title, icon: <CircleCheck className="text-success" /> });
             onSuccess?.();
           },
         },
@@ -79,10 +80,14 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
       {shelfId && <BackLink fallback="/shelves" />}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <Typography.Title level={1} className="!mb-0 !text-3xl">
-          {shelfId ? SHELVES_IDS[shelfId].description : 'Shelves'}
+          <span className="icon-label">
+            <MapPin size={28} />
+            {shelfId ? SHELVES_IDS[shelfId].description : 'Shelves'}
+          </span>
         </Typography.Title>
         {shelfId ? (
           <Button
+            icon={<PackagePlus />}
             type="primary"
             disabled={disabled}
             onClick={() => {
@@ -106,21 +111,44 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
               })
             }
             options={[
-              { label: 'Illustrations', value: 'illustrations' },
-              { label: 'Table', value: 'table' },
+              {
+                label: (
+                  <span className="icon-label">
+                    <Images />
+                    Illustrations
+                  </span>
+                ),
+                value: 'illustrations',
+              },
+              {
+                label: (
+                  <span className="icon-label">
+                    <Table2 />
+                    Table
+                  </span>
+                ),
+                value: 'table',
+              },
             ]}
           />
         )}
       </div>
       {library.legacy && (
         <Alert
+          showIcon
           type="info"
           className="mb-4"
           title="Import and migrate your library in Settings to edit shelf placements."
         />
       )}
       {failure && !adding && !editing && (
-        <Alert type="error" className="mb-4" title="Library change not saved" description={failure} />
+        <Alert
+          showIcon
+          type="error"
+          className="mb-4"
+          title="Library change not saved"
+          description={failure}
+        />
       )}
       {shelfId && (
         <Select
@@ -178,7 +206,7 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
         open={adding}
         okText="Add boxes"
         confirmLoading={save.isPending}
-        okButtonProps={{ disabled: disabled || !selected.length }}
+        okButtonProps={{ disabled: disabled || !selected.length, icon: <PackagePlus /> }}
         cancelButtonProps={{ disabled: save.isPending }}
         closable={!save.isPending}
         mask={{ closable: !save.isPending }}
@@ -188,7 +216,13 @@ function ShelfBrowser({ shelfId }: { shelfId?: string }) {
         }}
       >
         {failure && (
-          <Alert type="error" className="mb-4" title="Shelf placement not saved" description={failure} />
+          <Alert
+            showIcon
+            type="error"
+            className="mb-4"
+            title="Shelf placement not saved"
+            description={failure}
+          />
         )}
         <p>These boxes will move from their current location. Their contents will not change.</p>
         <Select

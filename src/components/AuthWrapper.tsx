@@ -1,4 +1,5 @@
 import { Alert, Button, Form, Input, Modal, Result, Spin } from 'antd';
+import { CircleAlert, LockKeyhole, LogIn, Mail, RefreshCw } from 'lucide-react';
 import { type PropsWithChildren, useState } from 'react';
 import { type SignInProps, useAuthContext } from 'services/AuthProvider';
 
@@ -21,7 +22,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
       title="Login"
       okText="Login"
       confirmLoading={isSigningIn}
-      okButtonProps={{ htmlType: 'submit', form: 'sign-in', disabled: isSigningIn }}
+      okButtonProps={{ htmlType: 'submit', form: 'sign-in', disabled: isSigningIn, icon: <LogIn /> }}
       cancelButtonProps={{ disabled: isSigningIn }}
       closable={!isSigningIn}
       mask={{ closable: !isSigningIn }}
@@ -37,7 +38,12 @@ function LoginModal({ onClose }: { onClose: () => void }) {
       >
         {error && <Alert type="error" title="Unable to sign in" description={error} showIcon />}
         <Form.Item
-          label="E-mail"
+          label={
+            <span className="icon-label">
+              <Mail />
+              E-mail
+            </span>
+          }
           name="email"
           rules={[
             { required: true, message: 'Enter your email.' },
@@ -47,7 +53,12 @@ function LoginModal({ onClose }: { onClose: () => void }) {
           <Input type="email" autoComplete="username" disabled={isSigningIn} />
         </Form.Item>
         <Form.Item
-          label="Password"
+          label={
+            <span className="icon-label">
+              <LockKeyhole />
+              Password
+            </span>
+          }
           name="password"
           rules={[{ required: true, message: 'Enter your password.' }]}
         >
@@ -69,7 +80,7 @@ function SignedOutGate() {
         description="You can't use this app unless you are logged in."
         showIcon
         action={
-          <Button type="primary" ghost onClick={() => setOpenLogin(true)}>
+          <Button type="primary" ghost icon={<LogIn />} onClick={() => setOpenLogin(true)}>
             Login
           </Button>
         }
@@ -95,10 +106,15 @@ export function AuthWrapper({ children }: PropsWithChildren) {
   if (error) {
     return (
       <Result
+        icon={<CircleAlert size={64} className="text-error" />}
         status="error"
         title="Unable to verify authentication"
         subTitle={error.message}
-        extra={<Button onClick={() => window.location.reload()}>Retry</Button>}
+        extra={
+          <Button icon={<RefreshCw />} onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        }
       />
     );
   }

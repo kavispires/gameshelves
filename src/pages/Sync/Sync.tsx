@@ -1,6 +1,14 @@
-import { UploadOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Layout, Modal, Typography, Upload, type UploadFile } from 'antd';
 import { useLibrary, useSaveLibrary } from 'hooks/useLibrary';
+import {
+  ClipboardCheck,
+  FileSpreadsheet,
+  RefreshCw,
+  Save,
+  Settings,
+  Trash2,
+  Upload as UploadIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { getLegacyGames } from 'services/firebase';
 import { prepareImport } from 'utils/library';
@@ -57,7 +65,12 @@ export function Sync() {
 
   return (
     <Layout.Content className="mx-auto w-full max-w-4xl p-4">
-      <Typography.Title level={1}>Settings</Typography.Title>
+      <Typography.Title level={1}>
+        <span className="icon-label">
+          <Settings size={28} />
+          Settings
+        </span>
+      </Typography.Title>
       <section aria-label="Saved library" className="mb-8">
         <Typography.Title level={2}>Saved library</Typography.Title>
         <p>
@@ -65,6 +78,7 @@ export function Sync() {
           import a CSV and clears any unsaved import preview.
         </p>
         <Button
+          icon={<RefreshCw />}
           disabled={busy}
           onClick={() => {
             setFiles([]);
@@ -86,6 +100,7 @@ export function Sync() {
       </p>
       {query.data?.legacy && (
         <Alert
+          showIcon
           type="warning"
           title="First import migrates your library"
           description="Review the complete collection carefully. Existing organization will be migrated, and legacy Firestore records will remain untouched as backups. Ambiguous entries block migration until resolved."
@@ -94,16 +109,20 @@ export function Sync() {
       )}
       <div className="my-4 max-w-full">
         <label htmlFor="bgg-collection-csv" className="mb-2 block font-medium">
-          BGG collection CSV
+          <span className="icon-label">
+            <FileSpreadsheet />
+            BGG collection CSV
+          </span>
         </label>
         <Upload<unknown>
+          iconRender={() => <FileSpreadsheet />}
           id="bgg-collection-csv"
           accept=".csv,text/csv"
           maxCount={1}
           fileList={files}
           disabled={busy}
           className="block max-w-full"
-          showUploadList={{ showRemoveIcon: !busy }}
+          showUploadList={{ showRemoveIcon: !busy, removeIcon: <Trash2 /> }}
           beforeUpload={(file) => {
             setFiles([file]);
             void importFile(file);
@@ -114,7 +133,7 @@ export function Sync() {
             void importFile(undefined);
           }}
         >
-          <Button icon={<UploadOutlined aria-hidden />} disabled={busy}>
+          <Button icon={<UploadIcon />} disabled={busy}>
             Choose CSV file
           </Button>
         </Upload>
@@ -123,6 +142,7 @@ export function Sync() {
       {reading && <p role="status">Reading CSV…</p>}
       {(error || save.isError) && (
         <Alert
+          showIcon
           type="error"
           title="Import not saved"
           description={error || save.error?.message}
@@ -131,6 +151,7 @@ export function Sync() {
       )}
       {success && (
         <Alert
+          showIcon
           type="success"
           title="Collection imported successfully"
           description="Your local library is up to date. Organize new games from Find Game."
@@ -149,6 +170,7 @@ export function Sync() {
           <GameList title="Removals" games={preview.removed} />
           {preview.released.length > 0 && (
             <Alert
+              showIcon
               type="warning"
               title="Some kept games will lose their box assignment"
               description={preview.released.map((id) => preview.next.games[id].name).join(', ')}
@@ -175,6 +197,7 @@ export function Sync() {
           )}
           <div>
             <Button
+              icon={<ClipboardCheck />}
               type="primary"
               disabled={busy || !complete || (preview.removed.length > 0 && !deletions)}
               onClick={() => setConfirming(true)}
@@ -194,7 +217,7 @@ export function Sync() {
         confirmLoading={save.isPending}
         cancelButtonProps={{ disabled: save.isPending }}
         okText="Confirm import"
-        okButtonProps={{ danger: Boolean(preview?.removed.length) }}
+        okButtonProps={{ danger: Boolean(preview?.removed.length), icon: <Save /> }}
         closable={!save.isPending}
         mask={{ closable: !save.isPending }}
       >

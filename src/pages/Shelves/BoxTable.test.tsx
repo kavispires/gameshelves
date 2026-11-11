@@ -96,7 +96,8 @@ describe('physical box inventory table', () => {
   it('uses icon actions and only deletes a box after confirmation', async () => {
     const { onEdit, onDelete } = mount();
     const edit = screen.getByRole('button', { name: 'Edit location for Alpha box' });
-    expect(within(edit).getByRole('img', { name: 'edit' })).toBeInTheDocument();
+    expect(edit).toHaveAccessibleName('Edit location for Alpha box');
+    expect(within(edit).queryByRole('img')).not.toBeInTheDocument();
     fireEvent.click(edit);
     expect(onEdit).toHaveBeenCalledWith(boxes[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Delete box Alpha box' }));

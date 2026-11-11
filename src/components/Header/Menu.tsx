@@ -1,22 +1,15 @@
-import {
-  CalendarOutlined,
-  MenuOutlined,
-  SearchOutlined,
-  SettingOutlined,
-  TableOutlined,
-  TeamOutlined,
-} from '@ant-design/icons';
 import { Button, Dropdown } from 'antd';
 import clsx from 'clsx';
+import { CalendarDays, Menu as MenuIcon, Search, Settings, Table2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Link, matchPath, useLocation } from 'react-router-dom';
 
 const items = [
-  { to: '/', label: 'Find Game', icon: <SearchOutlined /> },
-  { to: '/game-night', label: 'Game Night', icon: <CalendarOutlined /> },
-  { to: '/shelves', label: 'Shelves', icon: <TableOutlined /> },
-  { to: '/friends', label: 'Friends', icon: <TeamOutlined /> },
-  { to: '/settings', label: 'Settings', icon: <SettingOutlined /> },
+  { to: '/', label: 'Find Game', icon: <Search /> },
+  { to: '/game-night', label: 'Game Night', icon: <CalendarDays /> },
+  { to: '/shelves', label: 'Shelves', icon: <Table2 /> },
+  { to: '/friends', label: 'Friends', icon: <Users /> },
+  { to: '/settings', label: 'Settings', icon: <Settings /> },
 ];
 
 export function Menu() {
@@ -68,7 +61,7 @@ export function Menu() {
         <Button
           type="text"
           htmlType="button"
-          icon={<MenuOutlined aria-hidden="true" />}
+          icon={<MenuIcon />}
           aria-label="Open navigation"
           aria-haspopup="menu"
           aria-expanded={open}

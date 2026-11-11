@@ -32,6 +32,47 @@ ul {
   margin: 0;
 }
 
+.lucide {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
+
+.ant-tag .lucide {
+  vertical-align: middle;
+}
+
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.box-expand-icon,
+.box-expand-spacer {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  margin-inline-end: 8px;
+  vertical-align: middle;
+}
+
+.box-expand-icon {
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.box-expand-icon:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 2px;
+}
+
 .game-row-box {
   --game-row-background: #edf9f4;
   --game-row-hover: #e1f4eb;

@@ -5,6 +5,8 @@ import { App as AntApp, ConfigProvider, Layout } from 'antd';
 import { DataQueryWrapper } from 'components';
 import { AuthWrapper } from 'components/AuthWrapper';
 import { Header } from 'components/Header/Header';
+import { iconConfig } from 'components/icons';
+import { LucideProvider } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuthContext } from 'services/AuthProvider';
@@ -67,26 +69,29 @@ function AuthenticatedSession() {
 
 export function App() {
   return (
-    <StyleProvider layer>
-      <ConfigProvider
-        theme={{
-          token: {
-            colorPrimary: '#2a9d8f',
-            colorError: '#e76f51',
-            colorWarning: '#f4a261',
-            colorSuccess: '#8ab17d',
-            colorInfo: '#2a9d8f',
-          },
-        }}
-      >
-        <AntApp>
-          <AuthProvider>
-            <AuthWrapper>
-              <AuthenticatedSession />
-            </AuthWrapper>
-          </AuthProvider>
-        </AntApp>
-      </ConfigProvider>
-    </StyleProvider>
+    <LucideProvider size={16} strokeWidth={2}>
+      <StyleProvider layer>
+        <ConfigProvider
+          {...iconConfig}
+          theme={{
+            token: {
+              colorPrimary: '#2a9d8f',
+              colorError: '#e76f51',
+              colorWarning: '#f4a261',
+              colorSuccess: '#8ab17d',
+              colorInfo: '#2a9d8f',
+            },
+          }}
+        >
+          <AntApp>
+            <AuthProvider>
+              <AuthWrapper>
+                <AuthenticatedSession />
+              </AuthWrapper>
+            </AuthProvider>
+          </AntApp>
+        </ConfigProvider>
+      </StyleProvider>
+    </LucideProvider>
   );
 }

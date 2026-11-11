@@ -1,7 +1,7 @@
-import { PlusSquareOutlined } from '@ant-design/icons';
 import { Alert, Button, Modal, Select, Spin } from 'antd';
 import { useQueryShelvedGames } from 'hooks';
 import { orderBy } from 'lodash';
+import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SEPARATOR } from 'utils/constants';
 
@@ -36,9 +36,7 @@ export function AddContainedGameModal({ name, onAddContainedGame }: AddContained
 
   return (
     <>
-      <Button onClick={showModal} className="h-auto">
-        <PlusSquareOutlined />
-        <br />
+      <Button onClick={showModal} icon={<Plus />} className="h-auto">
         Add game
       </Button>
 
@@ -47,6 +45,7 @@ export function AddContainedGameModal({ name, onAddContainedGame }: AddContained
         open={isModalVisible}
         onOk={handleOk}
         okText="Add Games"
+        okButtonProps={{ icon: <Plus /> }}
         onCancel={handleCancel}
         closable={false}
         mask={{ closable: false }}

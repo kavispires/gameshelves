@@ -1,4 +1,5 @@
 import { Alert, Form, Modal, Select, Typography } from 'antd';
+import { Boxes, Package } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SHELVES_IDS } from 'utils/constants';
 import { getBoxName, groupGames } from 'utils/library';
@@ -43,7 +44,7 @@ export function GroupGamesModal({
       open
       okText="Group games"
       confirmLoading={saving}
-      okButtonProps={{ disabled: !destination || saving }}
+      okButtonProps={{ disabled: !destination || saving, icon: <Boxes /> }}
       cancelButtonProps={{ disabled: saving }}
       closable={!saving}
       mask={{ closable: !saving }}
@@ -53,13 +54,23 @@ export function GroupGamesModal({
         if (leaderId && destination) onSave(leaderId);
       }}
     >
-      {failure && <Alert type="error" className="mb-4" title="Games not grouped" description={failure} />}
+      {failure && (
+        <Alert showIcon type="error" className="mb-4" title="Games not grouped" description={failure} />
+      )}
       <p>
         Choose the main game whose physical box will hold the group. Existing contents stay. Selecting another
         box's main game also moves all its contents.
       </p>
       <Form layout="vertical">
-        <Form.Item label="Main game" htmlFor="group-main-game">
+        <Form.Item
+          label={
+            <span className="icon-label">
+              <Package />
+              Main game
+            </span>
+          }
+          htmlFor="group-main-game"
+        >
           <Select
             id="group-main-game"
             placeholder="Choose a selected game"

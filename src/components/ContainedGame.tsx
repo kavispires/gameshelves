@@ -1,5 +1,5 @@
-import { CloseCircleFilled } from '@ant-design/icons';
 import { Button, Popconfirm } from 'antd';
+import { CircleX, TriangleAlert, X } from 'lucide-react';
 import { GameCover } from './GameCover';
 import { GameTypeSelect } from './GameTypeSelect';
 
@@ -23,10 +23,20 @@ export function ContainedGame({ game, index, removeContainedGame, updateType }: 
       {index > 0 && (
         <span className="mt-2">
           <Popconfirm
+            icon={<TriangleAlert className="text-warning" />}
+            okButtonProps={{ icon: <CircleX /> }}
+            cancelButtonProps={{ icon: <X /> }}
             title="Are you sure you want to orphan this item?"
             onConfirm={() => removeContainedGame(game)}
           >
-            <Button size="small" type="text" danger icon={<CloseCircleFilled />}></Button>
+            <Button
+              size="small"
+              type="text"
+              danger
+              icon={<CircleX />}
+              aria-label={`Remove ${game.name} from box`}
+              title={`Remove ${game.name} from box`}
+            />
           </Popconfirm>
         </span>
       )}

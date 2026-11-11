@@ -24,7 +24,7 @@ export function BoxedGame({ game }: BoxedGameProps) {
     <GameCard game={game} isMutated={isMutated} save={save} saveResult={saveResult}>
       <div>
         {saveResult.isError && (
-          <Alert type="error" title="Failed to save" description={saveResult.error.message} />
+          <Alert showIcon type="error" title="Failed to save" description={saveResult.error.message} />
         )}
         <p>
           <GameTypeTag containedGames={mutatedGame.contains} />

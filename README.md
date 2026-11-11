@@ -5,6 +5,10 @@ A personal board-game inventory that answers: **"Where did I put that game?"**
 Game Shelves connects your BoardGameGeek (BGG) collection to your actual boxes and shelves.
 A base game, its expansions, and its promos can live together in one box, with one recorded location.
 
+UI icons use static imports from `lucide-react`, with shared size/stroke defaults. Icons supplement
+text labels; icon-only actions keep accessible names. Common Ant Design icon slots use Lucide too,
+but Ant Design retains its own transitive `@ant-design/icons` dependency for internal controls.
+
 ## What you can do
 
 Sign in with an existing Firebase email/password account. All signed-in accounts share one

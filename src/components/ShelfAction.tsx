@@ -1,4 +1,5 @@
 import { Button, Input, Space } from 'antd';
+import { MapPin } from 'lucide-react';
 import { CardItem } from './CardItem';
 
 type ShelfActionProps = {
@@ -12,7 +13,7 @@ export function ShelfAction({ shelfId, isShelved, isBoxed }: ShelfActionProps) {
     <CardItem label="Shelf">
       <Space>
         <Input disabled value={shelfId} size="small" style={{ width: 120 }} />{' '}
-        <Button size="small" disabled={!isBoxed} type={isShelved ? 'default' : 'primary'}>
+        <Button size="small" icon={<MapPin />} disabled={!isBoxed} type={isShelved ? 'default' : 'primary'}>
           {isShelved ? 'Change shelf' : 'Add to shelf'}
         </Button>
       </Space>

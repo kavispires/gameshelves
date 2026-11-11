@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from 'antd';
 import type { User } from 'firebase/auth';
 import Papa from 'papaparse';
@@ -108,6 +109,33 @@ async function filterGameColumn(name: RegExp, values: string[] | null) {
 }
 
 describe('modernized routes and Ant Design controls', () => {
+  it.each([
+    ['/games/1', true],
+    ['/', false],
+  ])('does not make existing statuses dismissible when adding icon defaults (%s)', async (path, signedIn) => {
+    if (!signedIn) initialUser = null;
+    await navigate(path);
+    await screen.findByText(signedIn ? 'Owned' : 'You are not logged in');
+    expect(screen.queryAllByRole('button', { name: 'Close' })).toHaveLength(0);
+  });
+
+  it('expands and collapses box contents with keyboard-operated icon controls', async () => {
+    const user = userEvent.setup();
+    service.getLibrary.mockResolvedValue(treeLibrary());
+    await navigate('/?view=boxes');
+    const expand = await screen.findAllByRole('button', { name: 'Expand row' });
+    expand[0].focus();
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('link', { name: 'Hidden expansion' })).toBeInTheDocument();
+    const collapse = screen.getByRole('button', { name: 'Collapse row' });
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+    collapse.focus();
+    await user.keyboard(' ');
+    expect(screen.queryByRole('link', { name: 'Hidden expansion' })).not.toBeInTheDocument();
+    expect(new URLSearchParams(window.location.hash.split('?')[1]).getAll('expanded')).toEqual(['']);
+    expect(service.saveLibrary).not.toHaveBeenCalled();
+  });
+
   it('finds missing images without treating image-only or thumbnail-only games as missing, and resets pagination', async () => {
     const base = tableLibrary(13);
     base.games['1'] = { ...base.games['1'], image: '', thumbnail: '' };
@@ -1278,6 +1306,26 @@ describe('authentication gate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
     expect(screen.getByLabelText('Password')).toHaveValue('');
+  });
+
+  it('toggles password visibility by keyboard without submitting or clearing the form', async () => {
+    const user = userEvent.setup();
+    initialUser = null;
+    await navigate('/');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+    const password = screen.getByLabelText('Password');
+    await user.type(password, 'local-test-password');
+    expect(password).toHaveAttribute('type', 'password');
+    screen.getByRole('button', { name: 'Show' }).focus();
+    await user.keyboard('{Enter}');
+    expect(password).toHaveAttribute('type', 'text');
+    const hide = screen.getByRole('button', { name: 'Hide' });
+    expect(hide).toHaveAttribute('aria-pressed', 'true');
+    hide.focus();
+    await user.keyboard(' ');
+    expect(password).toHaveAttribute('type', 'password');
+    expect(password).toHaveValue('local-test-password');
+    expect(service.signIn).not.toHaveBeenCalled();
   });
 
   it('surfaces observer errors without mounting data queries', async () => {

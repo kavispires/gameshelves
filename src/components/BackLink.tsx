@@ -1,4 +1,5 @@
 import { useBackNavigation } from 'hooks/useBackNavigation';
+import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function BackLink({ fallback, className }: { fallback: string; className?: string }) {
@@ -21,7 +22,9 @@ export function BackLink({ fallback, className }: { fallback: string; className?
         back();
       }}
     >
-      Back
+      <span className="icon-label">
+        <ArrowLeft /> Back
+      </span>
     </Link>
   );
 }
